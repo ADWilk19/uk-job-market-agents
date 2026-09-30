@@ -1,5 +1,9 @@
 from uk_job_market_agents.agents.classifier import ClassificationResult
-from uk_job_market_agents.evaluation.comparison import compare_classifiers
+from uk_job_market_agents.evaluation.comparison import (
+    ClassificationComparison,
+    compare_classifiers,
+    summarise_comparisons,
+)
 from uk_job_market_agents.models.job_posting import (
     RoleFamily,
     WorkPattern,
@@ -40,3 +44,35 @@ def test_compare_classifiers(monkeypatch):
     assert result.expected_work_pattern == WorkPattern.HYBRID
     assert result.rules_work_pattern == WorkPattern.REMOTE
     assert result.llm_work_pattern == WorkPattern.HYBRID
+
+
+def test_summarise_comparisons():
+    comparisons = [
+        ClassificationComparison(
+            title="Example 1",
+            expected_role_family=RoleFamily.DATA_ENGINEERING,
+            rules_role_family=RoleFamily.DATA_ENGINEERING,
+            llm_role_family=RoleFamily.DATA_ENGINEERING,
+            expected_work_pattern=WorkPattern.REMOTE,
+            rules_work_pattern=WorkPattern.REMOTE,
+            llm_work_pattern=WorkPattern.REMOTE,
+        ),
+        ClassificationComparison(
+            title="Example 2",
+            expected_role_family=RoleFamily.DATA_SCIENCE,
+            rules_role_family=RoleFamily.DATA_SCIENCE,
+            llm_role_family=RoleFamily.DATA_SCIENCE,
+            expected_work_pattern=WorkPattern.HYBRID,
+            rules_work_pattern=WorkPattern.REMOTE,
+            llm_work_pattern=WorkPattern.HYBRID,
+        ),
+    ]
+
+    summary = summarise_comparisons(comparisons)
+
+    assert summary.total == 2
+    assert summary.rules_role_matches == 2
+    assert summary.llm_role_matches == 2
+    assert summary.rules_work_matches == 1
+    assert summary.llm_work_matches == 2
+    assert summary.classifier_disagreements == 1

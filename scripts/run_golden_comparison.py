@@ -1,4 +1,7 @@
-from uk_job_market_agents.evaluation.comparison import compare_classifiers
+from uk_job_market_agents.evaluation.comparison import (
+    compare_classifiers,
+    summarise_comparisons,
+)
 from uk_job_market_agents.models.job_posting import (
     RoleFamily,
     WorkPattern,
@@ -75,6 +78,8 @@ GOLDEN_ADVERTS = [
 TABLE_WIDTH = 110
 
 def main() -> None:
+    comparisons = []
+
     for title, description, expected_role, expected_work in GOLDEN_ADVERTS:
         result = compare_classifiers(
             title=title,
@@ -82,6 +87,8 @@ def main() -> None:
             expected_role_family=expected_role,
             expected_work_pattern=expected_work,
         )
+
+        comparisons.append(result)
 
         print()
         print("=" * TABLE_WIDTH)
@@ -102,6 +109,18 @@ def main() -> None:
             f"llm={result.llm_work_pattern.value}"
         )
 
+    summary = summarise_comparisons(comparisons)
+
+    print()
+    print("=" * TABLE_WIDTH)
+    print("SUMMARY")
+    print("-" * TABLE_WIDTH)
+    print(f"Total adverts:              {summary.total}")
+    print(f"Rules role matches:         {summary.rules_role_matches}")
+    print(f"LLM role matches:           {summary.llm_role_matches}")
+    print(f"Rules work-pattern matches: {summary.rules_work_matches}")
+    print(f"LLM work-pattern matches:   {summary.llm_work_matches}")
+    print(f"Classifier disagreements:   {summary.classifier_disagreements}")
 
 if __name__ == "__main__":
     main()
