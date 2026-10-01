@@ -66,3 +66,26 @@ def run_classification_workflow(
         rules_work_pattern=rules_work_pattern,
         llm=llm_result,
     )
+
+
+class WorkflowResolution(BaseModel):
+    resolved: ResolvedClassification | None
+    requires_review: bool
+
+
+def resolve_classification(
+    result: ClassificationWorkflowResult,
+) -> WorkflowResolution:
+    if result.role_family_agrees and result.work_pattern_agrees:
+        return WorkflowResolution(
+            resolved=ResolvedClassification(
+                role_family=result.rules_role_family,
+                work_pattern=result.rules_work_pattern,
+            ),
+            requires_review=False,
+        )
+
+    return WorkflowResolution(
+        resolved=None,
+        requires_review=True,
+    )
