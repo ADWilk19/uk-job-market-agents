@@ -1,5 +1,14 @@
+from uk_job_market_agents.agents.classifier import classify_with_llm
+from uk_job_market_agents.agents.workflow import (
+    ClassificationWorkflowResult,
+    resolve_classification,
+)
+from uk_job_market_agents.classification.rules import (
+    classify_role_family,
+    classify_work_pattern,
+)
 from uk_job_market_agents.evaluation.comparison import (
-    compare_classifiers,
+    ClassificationComparison,
     summarise_comparisons,
 )
 from uk_job_market_agents.models.job_posting import (
@@ -81,14 +90,39 @@ def main() -> None:
     comparisons = []
 
     for title, description, expected_role, expected_work in GOLDEN_ADVERTS:
-        result = compare_classifiers(
+        rules_role_family = classify_role_family(
+            title,
+            description,
+        )
+
+        rules_work_pattern = classify_work_pattern(
+            f"{title} {description}"
+        )
+
+        llm_result = classify_with_llm(
+            title,
+            description,
+        )
+
+        result = ClassificationComparison(
             title=title,
-            description=description,
             expected_role_family=expected_role,
+            rules_role_family=rules_role_family,
+            llm_role_family=llm_result.role_family,
             expected_work_pattern=expected_work,
+            rules_work_pattern=rules_work_pattern,
+            llm_work_pattern=llm_result.work_pattern,
         )
 
         comparisons.append(result)
+
+        workflow_result = ClassificationWorkflowResult.from_results(
+            rules_role_family=rules_role_family,
+            rules_work_pattern=rules_work_pattern,
+            llm=llm_result,
+        )
+
+        resolution = resolve_classification(workflow_result)
 
         print()
         print("=" * TABLE_WIDTH)
@@ -109,6 +143,17 @@ def main() -> None:
             f"llm={result.llm_work_pattern.value}"
         )
 
+        if resolution.requires_review:
+            print(
+                f"Resolution     requires_review "
+                f"reason={resolution.review_reason.value}"
+            )
+        else:
+            print(
+                f"Resolution     auto_resolved "
+                f"role={resolution.resolved.role_family.value} "
+                f"work={resolution.resolved.work_pattern.value}"
+            )
     summary = summarise_comparisons(comparisons)
 
     print()
