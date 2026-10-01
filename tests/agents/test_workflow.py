@@ -72,3 +72,37 @@ def test_workflow_result_can_record_full_agreement():
 
     assert result.role_family_agrees is True
     assert result.work_pattern_agrees is True
+
+
+def test_from_results_calculates_disagreement():
+    llm_result = ClassificationResult(
+        role_family=RoleFamily.DATA_SCIENCE,
+        work_pattern=WorkPattern.HYBRID,
+        reasoning="Mandatory office attendance twice per week.",
+    )
+
+    result = ClassificationWorkflowResult.from_results(
+        rules_role_family=RoleFamily.DATA_SCIENCE,
+        rules_work_pattern=WorkPattern.REMOTE,
+        llm=llm_result,
+    )
+
+    assert result.role_family_agrees is True
+    assert result.work_pattern_agrees is False
+
+
+def test_from_results_calculates_full_agreement():
+    llm_result = ClassificationResult(
+        role_family=RoleFamily.DATA_ENGINEERING,
+        work_pattern=WorkPattern.REMOTE,
+        reasoning="The advert clearly describes remote data engineering work.",
+    )
+
+    result = ClassificationWorkflowResult.from_results(
+        rules_role_family=RoleFamily.DATA_ENGINEERING,
+        rules_work_pattern=WorkPattern.REMOTE,
+        llm=llm_result,
+    )
+
+    assert result.role_family_agrees is True
+    assert result.work_pattern_agrees is True
