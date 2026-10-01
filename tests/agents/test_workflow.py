@@ -5,6 +5,7 @@ from uk_job_market_agents.agents.classifier import ClassificationResult
 from uk_job_market_agents.agents.workflow import (
     ClassificationWorkflowResult,
     ResolvedClassification,
+    ReviewReason,
     WorkflowResolution,
     resolve_classification,
     run_classification_workflow,
@@ -164,6 +165,7 @@ def test_resolve_classification_accepts_full_agreement():
     resolution = resolve_classification(workflow_result)
 
     assert resolution.requires_review is False
+    assert resolution.review_reason is None
     assert resolution.resolved == ResolvedClassification(
         role_family=RoleFamily.DATA_ENGINEERING,
         work_pattern=WorkPattern.REMOTE,
@@ -187,3 +189,42 @@ def test_resolve_classification_escalates_disagreement():
 
     assert resolution.requires_review is True
     assert resolution.resolved is None
+    assert resolution.review_reason == ReviewReason.WORK_PATTERN
+
+
+def test_resolve_classification_identifies_role_family_disagreement():
+    llm_result = ClassificationResult(
+        role_family=RoleFamily.ANALYTICS_ENGINEERING,
+        work_pattern=WorkPattern.HYBRID,
+        reasoning="The role is focused on analytics engineering.",
+    )
+
+    workflow_result = ClassificationWorkflowResult.from_results(
+        rules_role_family=RoleFamily.DATA_ENGINEERING,
+        rules_work_pattern=WorkPattern.HYBRID,
+        llm=llm_result,
+    )
+
+    resolution = resolve_classification(workflow_result)
+
+    assert resolution.requires_review is True
+    assert resolution.review_reason == ReviewReason.ROLE_FAMILY
+
+
+def test_resolve_classification_identifies_both_disagreements():
+    llm_result = ClassificationResult(
+        role_family=RoleFamily.ANALYTICS_ENGINEERING,
+        work_pattern=WorkPattern.HYBRID,
+        reasoning="Both role family and work pattern differ.",
+    )
+
+    workflow_result = ClassificationWorkflowResult.from_results(
+        rules_role_family=RoleFamily.DATA_ENGINEERING,
+        rules_work_pattern=WorkPattern.REMOTE,
+        llm=llm_result,
+    )
+
+    resolution = resolve_classification(workflow_result)
+
+    assert resolution.requires_review is True
+    assert resolution.review_reason == ReviewReason.BOTH
