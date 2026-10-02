@@ -76,3 +76,56 @@ def test_summarise_comparisons():
     assert summary.rules_work_matches == 1
     assert summary.llm_work_matches == 2
     assert summary.classifier_disagreements == 1
+
+
+def test_summary_calculates_evaluation_metrics():
+    comparisons = [
+        ClassificationComparison(
+            title="Advert 1",
+            expected_role_family=RoleFamily.DATA_ENGINEERING,
+            rules_role_family=RoleFamily.DATA_ENGINEERING,
+            llm_role_family=RoleFamily.DATA_ENGINEERING,
+            expected_work_pattern=WorkPattern.REMOTE,
+            rules_work_pattern=WorkPattern.REMOTE,
+            llm_work_pattern=WorkPattern.REMOTE,
+        ),
+        ClassificationComparison(
+            title="Advert 2",
+            expected_role_family=RoleFamily.DATA_SCIENCE,
+            rules_role_family=RoleFamily.DATA_SCIENCE,
+            llm_role_family=RoleFamily.DATA_SCIENCE,
+            expected_work_pattern=WorkPattern.HYBRID,
+            rules_work_pattern=WorkPattern.REMOTE,
+            llm_work_pattern=WorkPattern.HYBRID,
+        ),
+    ]
+
+    summary = summarise_comparisons(comparisons)
+
+    assert summary.total == 2
+
+    assert summary.rules_role_accuracy == 1.0
+    assert summary.llm_role_accuracy == 1.0
+
+    assert summary.rules_work_accuracy == 0.5
+    assert summary.llm_work_accuracy == 1.0
+
+    assert summary.rules_full_accuracy == 0.5
+    assert summary.llm_full_accuracy == 1.0
+
+    assert summary.disagreement_rate == 0.5
+    assert summary.review_rate == 0.5
+
+
+def test_summary_rates_are_zero_for_empty_comparison_set():
+    summary = summarise_comparisons([])
+
+    assert summary.total == 0
+    assert summary.rules_role_accuracy == 0.0
+    assert summary.llm_role_accuracy == 0.0
+    assert summary.rules_work_accuracy == 0.0
+    assert summary.llm_work_accuracy == 0.0
+    assert summary.rules_full_accuracy == 0.0
+    assert summary.llm_full_accuracy == 0.0
+    assert summary.disagreement_rate == 0.0
+    assert summary.review_rate == 0.0
