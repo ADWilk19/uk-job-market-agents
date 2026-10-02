@@ -85,6 +85,7 @@ GOLDEN_ADVERTS = [
 ]
 
 TABLE_WIDTH = 110
+LABEL_WIDTH = 32
 
 def main() -> None:
     comparisons = []
@@ -160,12 +161,24 @@ def main() -> None:
     print("=" * TABLE_WIDTH)
     print("SUMMARY")
     print("-" * TABLE_WIDTH)
-    print(f"Total adverts:              {summary.total}")
-    print(f"Rules role matches:         {summary.rules_role_matches}")
-    print(f"LLM role matches:           {summary.llm_role_matches}")
-    print(f"Rules work-pattern matches: {summary.rules_work_matches}")
-    print(f"LLM work-pattern matches:   {summary.llm_work_matches}")
-    print(f"Classifier disagreements:   {summary.classifier_disagreements}")
+    print(f"Total adverts:                  {summary.total}")
+    print(f"Rules role matches:             {summary.rules_role_matches}")
+    print(f"LLM role matches:               {summary.llm_role_matches}")
+    print(f"Rules work-pattern matches:     {summary.rules_work_matches}")
+    print(f"LLM work-pattern matches:       {summary.llm_work_matches}")
+    print(f"Classifier disagreements:       {summary.classifier_disagreements}")
+    print()
+    print("Evaluation metrics")
+    print("-" * TABLE_WIDTH)
+
+    print(f"{'Rules role accuracy:':<{LABEL_WIDTH}}{summary.rules_role_accuracy:.0%}")
+    print(f"{'LLM role accuracy:':<{LABEL_WIDTH}}{summary.llm_role_accuracy:.0%}")
+    print(f"{'Rules work accuracy:':<{LABEL_WIDTH}}{summary.rules_work_accuracy:.0%}")
+    print(f"{'LLM work accuracy:':<{LABEL_WIDTH}}{summary.llm_work_accuracy:.0%}")
+    print(f"{'Rules full accuracy:':<{LABEL_WIDTH}}{summary.rules_full_accuracy:.0%}")
+    print(f"{'LLM full accuracy:':<{LABEL_WIDTH}}{summary.llm_full_accuracy:.0%}")
+    print(f"{'Classifier disagreement rate:':<{LABEL_WIDTH}}{summary.disagreement_rate:.0%}")
+    print(f"{'Review rate:':<{LABEL_WIDTH}}{summary.review_rate:.0%}")
 
 if __name__ == "__main__":
     main()
