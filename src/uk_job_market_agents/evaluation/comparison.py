@@ -78,6 +78,20 @@ class ComparisonSummary:
         return self.disagreement_rate
 
 
+@dataclass
+class EvaluationRun:
+    summary: ComparisonSummary
+
+
+@dataclass
+class EvaluationHistorySummary:
+    runs: int
+    average_llm_role_accuracy: float
+    average_llm_work_accuracy: float
+    average_llm_full_accuracy: float
+    average_disagreement_rate: float
+
+
 def compare_classifiers(
     title: str,
     description: str,
@@ -148,4 +162,39 @@ def summarise_comparisons(
             )
             for item in comparisons
         ),
+    )
+
+
+def summarise_history(
+    runs: list[EvaluationRun],
+) -> EvaluationHistorySummary:
+    if not runs:
+        return EvaluationHistorySummary(
+            runs=0,
+            average_llm_role_accuracy=0.0,
+            average_llm_work_accuracy=0.0,
+            average_llm_full_accuracy=0.0,
+            average_disagreement_rate=0.0,
+        )
+
+    total_runs = len(runs)
+
+    return EvaluationHistorySummary(
+        runs=total_runs,
+        average_llm_role_accuracy=sum(
+            run.summary.llm_role_accuracy
+            for run in runs
+        ) / total_runs,
+        average_llm_work_accuracy=sum(
+            run.summary.llm_work_accuracy
+            for run in runs
+        ) / total_runs,
+        average_llm_full_accuracy=sum(
+            run.summary.llm_full_accuracy
+            for run in runs
+        ) / total_runs,
+        average_disagreement_rate=sum(
+            run.summary.disagreement_rate
+            for run in runs
+        ) / total_runs,
     )
