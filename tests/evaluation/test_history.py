@@ -7,6 +7,8 @@ from uk_job_market_agents.evaluation.comparison import (
 from uk_job_market_agents.evaluation.history import (
     append_history_record,
     build_history_record,
+    history_records_to_runs,
+    load_history,
 )
 from uk_job_market_agents.models.job_posting import (
     RoleFamily,
@@ -57,3 +59,35 @@ def test_append_history_record_creates_and_appends(tmp_path):
     stored = json.loads(path.read_text())
 
     assert stored == [first, second]
+
+
+def test_load_history_returns_empty_list_for_missing_file(tmp_path):
+    path = tmp_path / "missing.json"
+
+    assert load_history(path) == []
+
+
+def test_history_records_to_runs_rebuilds_summaries():
+    records = [
+        {
+            "timestamp": "run-1",
+            "summary": {
+                "total": 5,
+                "rules_role_matches": 5,
+                "llm_role_matches": 4,
+                "rules_work_matches": 4,
+                "llm_work_matches": 5,
+                "rules_full_matches": 4,
+                "llm_full_matches": 4,
+                "classifier_disagreements": 2,
+            },
+            "comparisons": [],
+        }
+    ]
+
+    runs = history_records_to_runs(records)
+
+    assert len(runs) == 1
+    assert runs[0].summary.llm_role_accuracy == 0.8
+    assert runs[0].summary.llm_work_accuracy == 1.0
+    assert runs[0].summary.disagreement_rate == 0.4

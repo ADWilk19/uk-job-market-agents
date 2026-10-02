@@ -10,10 +10,19 @@ from uk_job_market_agents.classification.rules import (
 from uk_job_market_agents.evaluation.comparison import (
     ClassificationComparison,
     summarise_comparisons,
+    summarise_history,
 )
 from uk_job_market_agents.models.job_posting import (
     RoleFamily,
     WorkPattern,
+)
+from pathlib import Path
+
+from uk_job_market_agents.evaluation.history import (
+    append_history_record,
+    build_history_record,
+    history_records_to_runs,
+    load_history,
 )
 
 
@@ -83,9 +92,9 @@ GOLDEN_ADVERTS = [
         WorkPattern.REMOTE,
     ),
 ]
-
 TABLE_WIDTH = 110
 LABEL_WIDTH = 32
+HISTORY_PATH = Path("data/evaluation_history.json")
 
 def main() -> None:
     comparisons = []
@@ -157,6 +166,20 @@ def main() -> None:
             )
     summary = summarise_comparisons(comparisons)
 
+    record = build_history_record(
+    comparisons,
+    summary,
+)
+
+    append_history_record(
+        HISTORY_PATH,
+        record,
+    )
+
+    history_records = load_history(HISTORY_PATH)
+    history_runs = history_records_to_runs(history_records)
+    history_summary = summarise_history(history_runs)
+
     print()
     print("=" * TABLE_WIDTH)
     print("SUMMARY")
@@ -179,6 +202,27 @@ def main() -> None:
     print(f"{'LLM full accuracy:':<{LABEL_WIDTH}}{summary.llm_full_accuracy:.0%}")
     print(f"{'Classifier disagreement rate:':<{LABEL_WIDTH}}{summary.disagreement_rate:.0%}")
     print(f"{'Review rate:':<{LABEL_WIDTH}}{summary.review_rate:.0%}")
+
+    print()
+    print("Evaluation history")
+    print("-" * TABLE_WIDTH)
+    print(f"Recorded runs:                 {history_summary.runs}")
+    print(
+        f"Average LLM role accuracy:     "
+        f"{history_summary.average_llm_role_accuracy:.0%}"
+    )
+    print(
+        f"Average LLM work accuracy:     "
+        f"{history_summary.average_llm_work_accuracy:.0%}"
+    )
+    print(
+        f"Average LLM full accuracy:     "
+        f"{history_summary.average_llm_full_accuracy:.0%}"
+    )
+    print(
+        f"Average disagreement rate:     "
+        f"{history_summary.average_disagreement_rate:.0%}"
+    )
 
 if __name__ == "__main__":
     main()
