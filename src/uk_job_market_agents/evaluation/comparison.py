@@ -34,7 +34,62 @@ class ComparisonSummary:
     llm_role_matches: int
     rules_work_matches: int
     llm_work_matches: int
+    rules_full_matches: int
+    llm_full_matches: int
     classifier_disagreements: int
+
+    @staticmethod
+    def _rate(matches: int, total: int) -> float:
+        if total == 0:
+            return 0.0
+
+        return matches / total
+
+    @property
+    def rules_role_accuracy(self) -> float:
+        return self._rate(self.rules_role_matches, self.total)
+
+    @property
+    def llm_role_accuracy(self) -> float:
+        return self._rate(self.llm_role_matches, self.total)
+
+    @property
+    def rules_work_accuracy(self) -> float:
+        return self._rate(self.rules_work_matches, self.total)
+
+    @property
+    def llm_work_accuracy(self) -> float:
+        return self._rate(self.llm_work_matches, self.total)
+
+    @property
+    def rules_full_accuracy(self) -> float:
+        return self._rate(self.rules_full_matches, self.total)
+
+    @property
+    def llm_full_accuracy(self) -> float:
+        return self._rate(self.llm_full_matches, self.total)
+
+    @property
+    def disagreement_rate(self) -> float:
+        return self._rate(self.classifier_disagreements, self.total)
+
+    @property
+    def review_rate(self) -> float:
+        return self.disagreement_rate
+
+
+@dataclass
+class EvaluationRun:
+    summary: ComparisonSummary
+
+
+@dataclass
+class EvaluationHistorySummary:
+    runs: int
+    average_llm_role_accuracy: float
+    average_llm_work_accuracy: float
+    average_llm_full_accuracy: float
+    average_disagreement_rate: float
 
 
 def compare_classifiers(
@@ -86,6 +141,20 @@ def summarise_comparisons(
             item.llm_work_pattern == item.expected_work_pattern
             for item in comparisons
         ),
+        rules_full_matches=sum(
+            (
+                item.rules_role_family == item.expected_role_family
+                and item.rules_work_pattern == item.expected_work_pattern
+            )
+            for item in comparisons
+        ),
+        llm_full_matches=sum(
+            (
+                item.llm_role_family == item.expected_role_family
+                and item.llm_work_pattern == item.expected_work_pattern
+            )
+            for item in comparisons
+        ),
         classifier_disagreements=sum(
             (
                 item.rules_role_family != item.llm_role_family
@@ -93,4 +162,39 @@ def summarise_comparisons(
             )
             for item in comparisons
         ),
+    )
+
+
+def summarise_history(
+    runs: list[EvaluationRun],
+) -> EvaluationHistorySummary:
+    if not runs:
+        return EvaluationHistorySummary(
+            runs=0,
+            average_llm_role_accuracy=0.0,
+            average_llm_work_accuracy=0.0,
+            average_llm_full_accuracy=0.0,
+            average_disagreement_rate=0.0,
+        )
+
+    total_runs = len(runs)
+
+    return EvaluationHistorySummary(
+        runs=total_runs,
+        average_llm_role_accuracy=sum(
+            run.summary.llm_role_accuracy
+            for run in runs
+        ) / total_runs,
+        average_llm_work_accuracy=sum(
+            run.summary.llm_work_accuracy
+            for run in runs
+        ) / total_runs,
+        average_llm_full_accuracy=sum(
+            run.summary.llm_full_accuracy
+            for run in runs
+        ) / total_runs,
+        average_disagreement_rate=sum(
+            run.summary.disagreement_rate
+            for run in runs
+        ) / total_runs,
     )

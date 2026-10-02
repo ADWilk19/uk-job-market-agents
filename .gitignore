@@ -4,3 +4,4 @@ __pycache__/
 .DS_Store
 secrets.json
 *.egg-info/
+data/evaluation_history.json

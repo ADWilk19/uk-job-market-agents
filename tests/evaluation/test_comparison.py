@@ -1,8 +1,11 @@
 from uk_job_market_agents.agents.classifier import ClassificationResult
 from uk_job_market_agents.evaluation.comparison import (
     ClassificationComparison,
+    ComparisonSummary,
+    EvaluationRun,
     compare_classifiers,
     summarise_comparisons,
+    summarise_history,
 )
 from uk_job_market_agents.models.job_posting import (
     RoleFamily,
@@ -76,3 +79,102 @@ def test_summarise_comparisons():
     assert summary.rules_work_matches == 1
     assert summary.llm_work_matches == 2
     assert summary.classifier_disagreements == 1
+
+
+def test_summary_calculates_evaluation_metrics():
+    comparisons = [
+        ClassificationComparison(
+            title="Advert 1",
+            expected_role_family=RoleFamily.DATA_ENGINEERING,
+            rules_role_family=RoleFamily.DATA_ENGINEERING,
+            llm_role_family=RoleFamily.DATA_ENGINEERING,
+            expected_work_pattern=WorkPattern.REMOTE,
+            rules_work_pattern=WorkPattern.REMOTE,
+            llm_work_pattern=WorkPattern.REMOTE,
+        ),
+        ClassificationComparison(
+            title="Advert 2",
+            expected_role_family=RoleFamily.DATA_SCIENCE,
+            rules_role_family=RoleFamily.DATA_SCIENCE,
+            llm_role_family=RoleFamily.DATA_SCIENCE,
+            expected_work_pattern=WorkPattern.HYBRID,
+            rules_work_pattern=WorkPattern.REMOTE,
+            llm_work_pattern=WorkPattern.HYBRID,
+        ),
+    ]
+
+    summary = summarise_comparisons(comparisons)
+
+    assert summary.total == 2
+
+    assert summary.rules_role_accuracy == 1.0
+    assert summary.llm_role_accuracy == 1.0
+
+    assert summary.rules_work_accuracy == 0.5
+    assert summary.llm_work_accuracy == 1.0
+
+    assert summary.rules_full_accuracy == 0.5
+    assert summary.llm_full_accuracy == 1.0
+
+    assert summary.disagreement_rate == 0.5
+    assert summary.review_rate == 0.5
+
+
+def test_summary_rates_are_zero_for_empty_comparison_set():
+    summary = summarise_comparisons([])
+
+    assert summary.total == 0
+    assert summary.rules_role_accuracy == 0.0
+    assert summary.llm_role_accuracy == 0.0
+    assert summary.rules_work_accuracy == 0.0
+    assert summary.llm_work_accuracy == 0.0
+    assert summary.rules_full_accuracy == 0.0
+    assert summary.llm_full_accuracy == 0.0
+    assert summary.disagreement_rate == 0.0
+    assert summary.review_rate == 0.0
+
+
+def test_summarise_history_calculates_average_metrics():
+    run_one = EvaluationRun(
+        summary=ComparisonSummary(
+            total=5,
+            rules_role_matches=5,
+            llm_role_matches=4,
+            rules_work_matches=4,
+            llm_work_matches=5,
+            rules_full_matches=4,
+            llm_full_matches=4,
+            classifier_disagreements=2,
+        )
+    )
+
+    run_two = EvaluationRun(
+        summary=ComparisonSummary(
+            total=5,
+            rules_role_matches=5,
+            llm_role_matches=4,
+            rules_work_matches=4,
+            llm_work_matches=4,
+            rules_full_matches=4,
+            llm_full_matches=3,
+            classifier_disagreements=3,
+        )
+    )
+
+    history = summarise_history([run_one, run_two])
+
+    assert history.runs == 2
+    assert history.average_llm_role_accuracy == 0.8
+    assert history.average_llm_work_accuracy == 0.9
+    assert history.average_llm_full_accuracy == 0.7
+    assert history.average_disagreement_rate == 0.5
+
+
+def test_summarise_history_returns_zeroes_for_empty_history():
+    history = summarise_history([])
+
+    assert history.runs == 0
+    assert history.average_llm_role_accuracy == 0.0
+    assert history.average_llm_work_accuracy == 0.0
+    assert history.average_llm_full_accuracy == 0.0
+    assert history.average_disagreement_rate == 0.0
