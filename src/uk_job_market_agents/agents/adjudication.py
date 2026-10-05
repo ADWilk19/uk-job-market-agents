@@ -1,3 +1,4 @@
+from openai import OpenAI
 from pydantic import BaseModel
 
 from uk_job_market_agents.models.job_posting import (
@@ -56,7 +57,48 @@ def _call_role_family_adjudicator(
     rules_value: RoleFamily,
     llm_value: RoleFamily,
 ) -> RoleFamilyAdjudication:
-    raise NotImplementedError
+    client = OpenAI()
+
+    prompt = f"""
+        You are adjudicating a disagreement between two job classifiers.
+
+        Job title:
+        {title}
+
+        Job description:
+        {description}
+
+        Deterministic rules classification:
+        {rules_value.value}
+
+        LLM classification:
+        {llm_value.value}
+
+        Evaluate the advert itself rather than automatically trusting either classifier.
+
+        Return:
+        - the two supplied classifications
+        - your recommended classification
+        - concise evidence from the advert
+        - concise reasoning
+
+        The recommended classification must use the supplied RoleFamily schema.
+    """
+
+    response = client.responses.parse(
+        model="gpt-5.6-luna",
+        input=prompt,
+        text_format=RoleFamilyAdjudication,
+    )
+
+    result = response.output_parsed
+
+    if result is None:
+        raise RuntimeError(
+            "Role-family adjudicator did not return a parsed result"
+        )
+
+    return result
 
 
 def _call_work_pattern_adjudicator(
@@ -65,4 +107,49 @@ def _call_work_pattern_adjudicator(
     rules_value: WorkPattern,
     llm_value: WorkPattern,
 ) -> WorkPatternAdjudication:
-    raise NotImplementedError
+    client = OpenAI()
+
+    prompt = f"""
+        You are adjudicating a disagreement between two job classifiers.
+
+        Job title:
+        {title}
+
+        Job description:
+        {description}
+
+        Deterministic rules classification:
+        {rules_value.value}
+
+        LLM classification:
+        {llm_value.value}
+
+        Evaluate the actual working arrangement described by the advert.
+
+        Distinguish between:
+        - occasional meetings or exceptional attendance
+        - recurring mandatory office attendance
+
+        Return:
+        - the two supplied classifications
+        - your recommended classification
+        - concise evidence from the advert
+        - concise reasoning
+
+        The recommended classification must use the supplied WorkPattern schema.
+        """
+
+    response = client.responses.parse(
+        model="gpt-5.6-luna",
+        input=prompt,
+        text_format=WorkPatternAdjudication,
+    )
+
+    result = response.output_parsed
+
+    if result is None:
+        raise RuntimeError(
+            "Work-pattern adjudicator did not return a parsed result"
+        )
+
+    return result
