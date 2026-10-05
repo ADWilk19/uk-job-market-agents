@@ -1,6 +1,12 @@
 from pydantic import BaseModel
 from enum import Enum
 
+from uk_job_market_agents.agents.adjudication import (
+    RoleFamilyAdjudication,
+    WorkPatternAdjudication,
+    adjudicate_role_family,
+    adjudicate_work_pattern,
+)
 from uk_job_market_agents.agents.classifier import (
     ClassificationResult,
     classify_with_llm,
@@ -104,4 +110,41 @@ def resolve_classification(
         resolved=None,
         requires_review=True,
         review_reason=reason,
+    )
+
+
+class AdjudicatedWorkflowResult(BaseModel):
+    workflow: ClassificationWorkflowResult
+    role_family_adjudication: RoleFamilyAdjudication | None = None
+    work_pattern_adjudication: WorkPatternAdjudication | None = None
+
+
+def adjudicate_workflow(
+    title: str,
+    description: str,
+    result: ClassificationWorkflowResult,
+) -> AdjudicatedWorkflowResult:
+    role_adjudication = None
+    work_adjudication = None
+
+    if not result.role_family_agrees:
+        role_adjudication = adjudicate_role_family(
+            title=title,
+            description=description,
+            rules_value=result.rules_role_family,
+            llm_value=result.llm.role_family,
+        )
+
+    if not result.work_pattern_agrees:
+        work_adjudication = adjudicate_work_pattern(
+            title=title,
+            description=description,
+            rules_value=result.rules_work_pattern,
+            llm_value=result.llm.work_pattern,
+        )
+
+    return AdjudicatedWorkflowResult(
+        workflow=result,
+        role_family_adjudication=role_adjudication,
+        work_pattern_adjudication=work_adjudication,
     )

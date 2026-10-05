@@ -7,6 +7,8 @@ from uk_job_market_agents.agents.workflow import (
     ResolvedClassification,
     ReviewReason,
     WorkflowResolution,
+    WorkPatternAdjudication,
+    adjudicate_workflow,
     resolve_classification,
     run_classification_workflow,
 )
@@ -228,3 +230,58 @@ def test_resolve_classification_identifies_both_disagreements():
 
     assert resolution.requires_review is True
     assert resolution.review_reason == ReviewReason.BOTH
+
+
+def test_adjudicate_workflow_only_adjudicates_disputed_field(monkeypatch):
+    workflow_result = ClassificationWorkflowResult.from_results(
+        rules_role_family=RoleFamily.DATA_SCIENCE,
+        rules_work_pattern=WorkPattern.REMOTE,
+        llm=ClassificationResult(
+            role_family=RoleFamily.DATA_SCIENCE,
+            work_pattern=WorkPattern.HYBRID,
+            reasoning="Mandatory office attendance twice per week.",
+        ),
+    )
+
+    expected = WorkPatternAdjudication(
+        rules_value=WorkPattern.REMOTE,
+        llm_value=WorkPattern.HYBRID,
+        recommended_value=WorkPattern.HYBRID,
+        evidence=["Attendance is required every Tuesday and Thursday."],
+        reasoning="Recurring mandatory attendance makes the role hybrid.",
+    )
+
+    monkeypatch.setattr(
+        "uk_job_market_agents.agents.workflow.adjudicate_work_pattern",
+        lambda **kwargs: expected,
+    )
+
+    result = adjudicate_workflow(
+        title="Data Scientist",
+        description="Remote-first, with mandatory office attendance twice per week.",
+        result=workflow_result,
+    )
+
+    assert result.role_family_adjudication is None
+    assert result.work_pattern_adjudication == expected
+
+
+def test_adjudicate_workflow_skips_when_classifiers_agree():
+    workflow_result = ClassificationWorkflowResult.from_results(
+        rules_role_family=RoleFamily.DATA_ENGINEERING,
+        rules_work_pattern=WorkPattern.REMOTE,
+        llm=ClassificationResult(
+            role_family=RoleFamily.DATA_ENGINEERING,
+            work_pattern=WorkPattern.REMOTE,
+            reasoning="Both classifiers agree.",
+        ),
+    )
+
+    result = adjudicate_workflow(
+        title="Data Engineer",
+        description="Remote UK data engineering role.",
+        result=workflow_result,
+    )
+
+    assert result.role_family_adjudication is None
+    assert result.work_pattern_adjudication is None
