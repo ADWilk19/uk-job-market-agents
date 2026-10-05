@@ -198,3 +198,37 @@ def summarise_history(
             for run in runs
         ) / total_runs,
     )
+
+
+@dataclass(frozen=True)
+class ClassificationDisagreement:
+    title: str
+    role_family_disagreement: bool
+    work_pattern_disagreement: bool
+
+
+def find_disagreements(
+    comparisons: list[ClassificationComparison],
+) -> list[ClassificationDisagreement]:
+    disagreements = []
+
+    for comparison in comparisons:
+        role_disagreement = (
+            comparison.rules_role_family
+            != comparison.llm_role_family
+        )
+        work_disagreement = (
+            comparison.rules_work_pattern
+            != comparison.llm_work_pattern
+        )
+
+        if role_disagreement or work_disagreement:
+            disagreements.append(
+                ClassificationDisagreement(
+                    title=comparison.title,
+                    role_family_disagreement=role_disagreement,
+                    work_pattern_disagreement=work_disagreement,
+                )
+            )
+
+    return disagreements

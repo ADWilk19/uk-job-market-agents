@@ -1,9 +1,11 @@
 from uk_job_market_agents.agents.classifier import ClassificationResult
 from uk_job_market_agents.evaluation.comparison import (
     ClassificationComparison,
+    ClassificationDisagreement,
     ComparisonSummary,
     EvaluationRun,
     compare_classifiers,
+    find_disagreements,
     summarise_comparisons,
     summarise_history,
 )
@@ -178,3 +180,48 @@ def test_summarise_history_returns_zeroes_for_empty_history():
     assert history.average_llm_work_accuracy == 0.0
     assert history.average_llm_full_accuracy == 0.0
     assert history.average_disagreement_rate == 0.0
+
+
+def test_find_disagreements_returns_only_disputed_classifications():
+    comparisons = [
+        ClassificationComparison(
+            title="Stable advert",
+            expected_role_family=RoleFamily.DATA_ENGINEERING,
+            rules_role_family=RoleFamily.DATA_ENGINEERING,
+            llm_role_family=RoleFamily.DATA_ENGINEERING,
+            expected_work_pattern=WorkPattern.REMOTE,
+            rules_work_pattern=WorkPattern.REMOTE,
+            llm_work_pattern=WorkPattern.REMOTE,
+        ),
+        ClassificationComparison(
+            title="Role disagreement",
+            expected_role_family=RoleFamily.DATA_ENGINEERING,
+            rules_role_family=RoleFamily.DATA_ENGINEERING,
+            llm_role_family=RoleFamily.ANALYTICS_ENGINEERING,
+            expected_work_pattern=WorkPattern.HYBRID,
+            rules_work_pattern=WorkPattern.HYBRID,
+            llm_work_pattern=WorkPattern.HYBRID,
+        ),
+        ClassificationComparison(
+            title="Work disagreement",
+            expected_role_family=RoleFamily.DATA_SCIENCE,
+            rules_role_family=RoleFamily.DATA_SCIENCE,
+            llm_role_family=RoleFamily.DATA_SCIENCE,
+            expected_work_pattern=WorkPattern.HYBRID,
+            rules_work_pattern=WorkPattern.REMOTE,
+            llm_work_pattern=WorkPattern.HYBRID,
+        ),
+    ]
+
+    assert find_disagreements(comparisons) == [
+        ClassificationDisagreement(
+            title="Role disagreement",
+            role_family_disagreement=True,
+            work_pattern_disagreement=False,
+        ),
+        ClassificationDisagreement(
+            title="Work disagreement",
+            role_family_disagreement=False,
+            work_pattern_disagreement=True,
+        ),
+    ]
