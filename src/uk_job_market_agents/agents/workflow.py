@@ -59,6 +59,22 @@ class ClassificationWorkflowResult(BaseModel):
         )
 
 
+class WorkflowResolution(BaseModel):
+    resolved: ResolvedClassification | None
+    requires_review: bool
+    review_reason: ReviewReason | None
+
+
+class AdjudicationResolution(BaseModel):
+    proposed: ResolvedClassification
+    requires_review: bool
+
+
+class AdjudicatedWorkflowResult(BaseModel):
+    workflow: ClassificationWorkflowResult
+    role_family_adjudication: RoleFamilyAdjudication | None = None
+    work_pattern_adjudication: WorkPatternAdjudication | None = None
+
 def run_classification_workflow(
     title: str,
     description: str,
@@ -80,11 +96,6 @@ def run_classification_workflow(
         llm=llm_result,
     )
 
-
-class WorkflowResolution(BaseModel):
-    resolved: ResolvedClassification | None
-    requires_review: bool
-    review_reason: ReviewReason | None
 
 def resolve_classification(
     result: ClassificationWorkflowResult,
@@ -111,12 +122,6 @@ def resolve_classification(
         requires_review=True,
         review_reason=reason,
     )
-
-
-class AdjudicatedWorkflowResult(BaseModel):
-    workflow: ClassificationWorkflowResult
-    role_family_adjudication: RoleFamilyAdjudication | None = None
-    work_pattern_adjudication: WorkPatternAdjudication | None = None
 
 
 def adjudicate_workflow(
@@ -147,4 +152,33 @@ def adjudicate_workflow(
         workflow=result,
         role_family_adjudication=role_adjudication,
         work_pattern_adjudication=work_adjudication,
+    )
+
+
+def resolve_after_adjudication(
+    result: AdjudicatedWorkflowResult,
+) -> AdjudicationResolution:
+    workflow = result.workflow
+
+    role_family = (
+        result.role_family_adjudication.recommended_value
+        if result.role_family_adjudication is not None
+        else workflow.rules_role_family
+    )
+
+    work_pattern = (
+        result.work_pattern_adjudication.recommended_value
+        if result.work_pattern_adjudication is not None
+        else workflow.rules_work_pattern
+    )
+
+    return AdjudicationResolution(
+        proposed=ResolvedClassification(
+            role_family=role_family,
+            work_pattern=work_pattern,
+        ),
+        requires_review=(
+            result.role_family_adjudication is not None
+            or result.work_pattern_adjudication is not None
+        ),
     )

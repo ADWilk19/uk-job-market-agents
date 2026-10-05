@@ -1,14 +1,21 @@
 import pytest
 from pydantic import ValidationError
 
+from uk_job_market_agents.agents.adjudication import (
+    RoleFamilyAdjudication,
+    WorkPatternAdjudication,
+)
 from uk_job_market_agents.agents.classifier import ClassificationResult
 from uk_job_market_agents.agents.workflow import (
+    AdjudicationResolution,
+    AdjudicatedWorkflowResult,
     ClassificationWorkflowResult,
     ResolvedClassification,
     ReviewReason,
     WorkflowResolution,
     WorkPatternAdjudication,
     adjudicate_workflow,
+    resolve_after_adjudication,
     resolve_classification,
     run_classification_workflow,
 )
@@ -285,3 +292,58 @@ def test_adjudicate_workflow_skips_when_classifiers_agree():
 
     assert result.role_family_adjudication is None
     assert result.work_pattern_adjudication is None
+
+
+def test_resolve_after_adjudication_uses_recommended_work_pattern():
+    workflow_result = ClassificationWorkflowResult.from_results(
+        rules_role_family=RoleFamily.DATA_SCIENCE,
+        rules_work_pattern=WorkPattern.REMOTE,
+        llm=ClassificationResult(
+            role_family=RoleFamily.DATA_SCIENCE,
+            work_pattern=WorkPattern.HYBRID,
+            reasoning="Mandatory office attendance twice per week.",
+        ),
+    )
+
+    adjudicated = AdjudicatedWorkflowResult(
+        workflow=workflow_result,
+        work_pattern_adjudication=WorkPatternAdjudication(
+            rules_value=WorkPattern.REMOTE,
+            llm_value=WorkPattern.HYBRID,
+            recommended_value=WorkPattern.HYBRID,
+            evidence=["Office attendance is mandatory every Tuesday and Thursday."],
+            reasoning="Recurring mandatory attendance makes the role hybrid.",
+        ),
+    )
+
+    resolution = resolve_after_adjudication(adjudicated)
+
+    assert resolution.proposed == ResolvedClassification(
+        role_family=RoleFamily.DATA_SCIENCE,
+        work_pattern=WorkPattern.HYBRID,
+    )
+    assert resolution.requires_review is True
+
+
+def test_resolve_after_adjudication_does_not_require_review_without_adjudication():
+    workflow_result = ClassificationWorkflowResult.from_results(
+        rules_role_family=RoleFamily.DATA_ENGINEERING,
+        rules_work_pattern=WorkPattern.REMOTE,
+        llm=ClassificationResult(
+            role_family=RoleFamily.DATA_ENGINEERING,
+            work_pattern=WorkPattern.REMOTE,
+            reasoning="Both classifiers agree.",
+        ),
+    )
+
+    adjudicated = AdjudicatedWorkflowResult(
+        workflow=workflow_result,
+    )
+
+    resolution = resolve_after_adjudication(adjudicated)
+
+    assert resolution.proposed == ResolvedClassification(
+        role_family=RoleFamily.DATA_ENGINEERING,
+        work_pattern=WorkPattern.REMOTE,
+    )
+    assert resolution.requires_review is False
