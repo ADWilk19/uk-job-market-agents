@@ -1,6 +1,10 @@
+from pathlib import Path
+
 from uk_job_market_agents.agents.classifier import classify_with_llm
 from uk_job_market_agents.agents.workflow import (
     ClassificationWorkflowResult,
+    adjudicate_workflow,
+    resolve_after_adjudication,
     resolve_classification,
 )
 from uk_job_market_agents.classification.rules import (
@@ -16,8 +20,6 @@ from uk_job_market_agents.models.job_posting import (
     RoleFamily,
     WorkPattern,
 )
-from pathlib import Path
-
 from uk_job_market_agents.evaluation.history import (
     append_history_record,
     build_history_record,
@@ -132,7 +134,13 @@ def main() -> None:
             llm=llm_result,
         )
 
-        resolution = resolve_classification(workflow_result)
+        adjudicated = adjudicate_workflow(
+            title=title,
+            description=description,
+            result=workflow_result,
+        )
+
+        resolution = resolve_after_adjudication(adjudicated)
 
         print()
         print("=" * TABLE_WIDTH)
@@ -156,14 +164,39 @@ def main() -> None:
         if resolution.requires_review:
             print(
                 f"Resolution     requires_review "
-                f"reason={resolution.review_reason.value}"
+                f"proposed_role={resolution.proposed.role_family.value} "
+                f"proposed_work={resolution.proposed.work_pattern.value}"
             )
         else:
             print(
                 f"Resolution     auto_resolved "
-                f"role={resolution.resolved.role_family.value} "
-                f"work={resolution.resolved.work_pattern.value}"
+                f"role={resolution.proposed.role_family.value} "
+                f"work={resolution.proposed.work_pattern.value}"
             )
+
+        if adjudicated.role_family_adjudication is not None:
+                print(
+                    "Role adjudication:",
+                    adjudicated.role_family_adjudication.recommended_value.value,
+                )
+
+        if adjudicated.work_pattern_adjudication is not None:
+            print(
+                "Work adjudication:",
+                adjudicated.work_pattern_adjudication.recommended_value.value,
+            )
+
+        print(
+            "Proposed resolution:",
+            resolution.proposed.role_family.value,
+            "/",
+            resolution.proposed.work_pattern.value,
+        )
+
+        print(
+            "Requires review:",
+            resolution.requires_review,
+        )
     summary = summarise_comparisons(comparisons)
 
     record = build_history_record(
