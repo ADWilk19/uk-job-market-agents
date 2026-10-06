@@ -150,3 +150,42 @@ def test_summarise_salaries_by_work_pattern():
     assert hybrid.records == 1
     assert hybrid.records_with_salary == 1
     assert hybrid.average_midpoint == 50_000
+
+
+def test_salary_summary_has_sufficient_sample_with_two_salary_records():
+    records = [
+        AnalyticalJobRecord(
+            title="Data Engineer",
+            role_family=RoleFamily.DATA_ENGINEERING,
+            work_pattern=WorkPattern.REMOTE,
+            salary_min=50_000,
+            salary_max=60_000,
+        ),
+        AnalyticalJobRecord(
+            title="Senior Data Engineer",
+            role_family=RoleFamily.DATA_ENGINEERING,
+            work_pattern=WorkPattern.REMOTE,
+            salary_min=60_000,
+            salary_max=70_000,
+        ),
+    ]
+
+    summary = summarise_salaries(records)
+
+    assert summary.has_sufficient_sample is True
+
+
+def test_salary_summary_has_insufficient_sample_with_one_salary_record():
+    records = [
+        AnalyticalJobRecord(
+            title="Data Engineer",
+            role_family=RoleFamily.DATA_ENGINEERING,
+            work_pattern=WorkPattern.REMOTE,
+            salary_min=50_000,
+            salary_max=60_000,
+        )
+    ]
+
+    summary = summarise_salaries(records)
+
+    assert summary.has_sufficient_sample is False

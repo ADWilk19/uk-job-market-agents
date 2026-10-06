@@ -14,6 +14,10 @@ class SalarySummary:
     records_with_salary: int
     average_midpoint: float | None
 
+    @property
+    def has_sufficient_sample(self) -> bool:
+        return self.records_with_salary >= 2
+
 
 @dataclass(frozen=True)
 class RoleFamilySalarySummary:
