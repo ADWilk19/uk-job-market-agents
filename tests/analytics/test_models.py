@@ -31,6 +31,7 @@ def test_analytical_job_record_allows_missing_salary():
     assert record.salary_min is None
     assert record.salary_max is None
 
+
 def test_analytical_job_record_rejects_inverted_salary_range():
     with pytest.raises(ValidationError):
         AnalyticalJobRecord(
@@ -40,3 +41,26 @@ def test_analytical_job_record_rejects_inverted_salary_range():
             salary_min=70_000,
             salary_max=60_000,
         )
+
+
+def test_salary_midpoint_is_calculated():
+    record = AnalyticalJobRecord(
+        title="Data Engineer",
+        role_family=RoleFamily.DATA_ENGINEERING,
+        work_pattern=WorkPattern.HYBRID,
+        salary_min=55_000,
+        salary_max=65_000,
+    )
+
+    assert record.salary_midpoint == 60_000
+
+
+def test_salary_midpoint_is_none_when_salary_is_incomplete():
+    record = AnalyticalJobRecord(
+        title="Data Engineer",
+        role_family=RoleFamily.DATA_ENGINEERING,
+        work_pattern=WorkPattern.REMOTE,
+        salary_min=55_000,
+    )
+
+    assert record.salary_midpoint is None

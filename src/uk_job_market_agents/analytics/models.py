@@ -23,3 +23,11 @@ class AnalyticalJobRecord(BaseModel):
             raise ValueError("salary_min cannot exceed salary_max")
 
         return self
+
+
+    @property
+    def salary_midpoint(self) -> float | None:
+        if self.salary_min is None or self.salary_max is None:
+            return None
+
+        return (self.salary_min + self.salary_max) / 2
