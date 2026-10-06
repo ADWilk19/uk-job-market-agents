@@ -2,7 +2,10 @@ from dataclasses import dataclass
 from statistics import mean
 
 from uk_job_market_agents.analytics.models import AnalyticalJobRecord
-from uk_job_market_agents.models.job_posting import RoleFamily
+from uk_job_market_agents.models.job_posting import (
+    RoleFamily,
+    WorkPattern,
+)
 
 
 @dataclass(frozen=True)
@@ -15,6 +18,14 @@ class SalarySummary:
 @dataclass(frozen=True)
 class RoleFamilySalarySummary:
     role_family: RoleFamily
+    records: int
+    records_with_salary: int
+    average_midpoint: float | None
+
+
+@dataclass(frozen=True)
+class WorkPatternSalarySummary:
+    work_pattern: WorkPattern
     records: int
     records_with_salary: int
     average_midpoint: float | None
@@ -56,6 +67,35 @@ def summarise_salaries_by_role_family(
         summaries.append(
             RoleFamilySalarySummary(
                 role_family=role_family,
+                records=salary_summary.records,
+                records_with_salary=salary_summary.records_with_salary,
+                average_midpoint=salary_summary.average_midpoint,
+            )
+        )
+
+    return summaries
+
+
+def summarise_salaries_by_work_pattern(
+    records: list[AnalyticalJobRecord],
+) -> list[WorkPatternSalarySummary]:
+    summaries = []
+
+    for work_pattern in WorkPattern:
+        matching_records = [
+            record
+            for record in records
+            if record.work_pattern == work_pattern
+        ]
+
+        if not matching_records:
+            continue
+
+        salary_summary = summarise_salaries(matching_records)
+
+        summaries.append(
+            WorkPatternSalarySummary(
+                work_pattern=work_pattern,
                 records=salary_summary.records,
                 records_with_salary=salary_summary.records_with_salary,
                 average_midpoint=salary_summary.average_midpoint,
