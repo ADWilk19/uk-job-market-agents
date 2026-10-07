@@ -1,4 +1,6 @@
-from dataclasses import dataclass
+import csv
+from dataclasses import asdict, dataclass
+from pathlib import Path
 
 from uk_job_market_agents.analytics.models import AnalyticalJobRecord
 from uk_job_market_agents.analytics.summary import (
@@ -61,3 +63,26 @@ def build_salary_analysis_rows(
         )
 
     return rows
+
+
+def write_salary_analysis_csv(
+    rows: list[SalaryAnalysisRow],
+    output_path: Path,
+) -> None:
+    with output_path.open("w", newline="", encoding="utf-8") as file:
+        writer = csv.DictWriter(
+            file,
+            fieldnames=[
+                "dimension",
+                "segment",
+                "records",
+                "records_with_salary",
+                "average_midpoint",
+                "has_sufficient_sample",
+            ],
+        )
+
+        writer.writeheader()
+
+        for row in rows:
+            writer.writerow(asdict(row))
