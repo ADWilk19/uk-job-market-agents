@@ -42,11 +42,3 @@ class SalaryQuote(BaseModel):
             )
 
         return self
-
-    @property
-    def is_annual_salary_range(self) -> bool:
-        return (
-            self.period == SalaryPeriod.YEAR
-            and self.salary_min is not None
-            and self.salary_max is not None
-        )

@@ -58,28 +58,3 @@ def test_non_gbp_currency_is_rejected():
             period="year",
             currency="USD",
         )
-
-
-@pytest.mark.parametrize(
-    "salary_min,salary_max,period,expected",
-    [
-        (55_000, 65_000, "year", True),
-        (None, 70_000, "year", False),
-        (45_000, None, "year", False),
-        (450, 550, "day", False),
-        (25, 35, "hour", False),
-    ],
-)
-def test_salary_analytics_eligibility(
-    salary_min,
-    salary_max,
-    period,
-    expected,
-):
-    quote = SalaryQuote(
-        salary_min=salary_min,
-        salary_max=salary_max,
-        period=period,
-    )
-
-    assert quote.is_annual_salary_range is expected
