@@ -83,6 +83,29 @@ For example, an approved Data Engineer advertisement offering
 £500–£600 per day remains eligible for role-family and working-pattern
 analysis, even though its annual salary fields are empty.
 
+## CSV Export Contract
+
+`write_salary_analysis_csv` accepts a sequence of `SalaryAnalysisRow`
+instances and writes aggregated salary-analysis results to a CSV file.
+
+The exporter guarantees:
+
+- **Column schema:** The following six columns are written in the specified order:
+
+  ```csv
+  dimension,segment,records,records_with_salary,average_midpoint,has_sufficient_sample
+  ```
+
+- **Deterministic output:** Identical input rows, supplied in the same order,
+  produce identical CSV bytes. The exporter does not automatically sort rows.
+- **Line endings:** The exporter uses LF (`\n`) line endings, regardless of
+  operating system.
+- **Missing values:** An unavailable `average_midpoint` is represented by
+  an empty CSV field.
+
+The export contains aggregated salary-analysis summaries rather than
+individual job advertisements.
+
 ## Testing
 
 The project uses pytest to validate model contracts, classification
@@ -115,4 +138,4 @@ is under development.
    end-to-end pipeline.
 3. Acquire and validate real UK job advertisements.
 4. Develop analysis-ready datasets with appropriate provenance.
-5. Explore job-market trends using Tableau.
+5. Explore job-market trends using locally hosted Python visualisations and interactive dashboards.

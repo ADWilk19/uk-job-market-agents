@@ -65,3 +65,33 @@ def test_missing_salary_midpoint_is_empty(tmp_path):
     lines = output_path.read_text(encoding="utf-8").splitlines()
 
     assert lines[1] == "work_pattern,remote,5,0,,False"
+
+
+def test_csv_column_order_is_stable(tmp_path):
+    rows = [
+            SalaryAnalysisRow(
+                dimension="work_pattern",
+                segment="remote",
+                records=2,
+                records_with_salary=2,
+                average_midpoint=70000.0,
+                has_sufficient_sample=True,
+            )
+        ]
+
+    output_path = tmp_path / "salary_analysis.csv"
+
+    write_salary_analysis_csv(rows, output_path)
+
+    header = output_path.read_text(encoding="utf-8").splitlines()[0]
+
+    expected_columns = [
+        "dimension",
+        "segment",
+        "records",
+        "records_with_salary",
+        "average_midpoint",
+        "has_sufficient_sample",
+    ]
+    assert header == ",".join(expected_columns)
+
