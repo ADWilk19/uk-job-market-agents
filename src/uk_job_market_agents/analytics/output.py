@@ -80,6 +80,7 @@ def write_salary_analysis_csv(
                 "average_midpoint",
                 "has_sufficient_sample",
             ],
+            lineterminator="\n",
         )
 
         writer.writeheader()
