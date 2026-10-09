@@ -23,7 +23,7 @@ validated datasets suitable for analysis and visualisation.
 The project separates responsibilities across several components:
 
 | Component | Responsibility |
-|-----------|----------------|
+| --------- | -------------- |
 | Pydantic models | Validate structured job advertisement data |
 | Classification rules | Apply deterministic role and working-pattern classifications |
 | LLM classifier | Interpret job advertisements using a language model |
