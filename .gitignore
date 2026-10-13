@@ -5,3 +5,6 @@ __pycache__/
 secrets.json
 *.egg-info/
 data/evaluation_history.json
+
+# macOS Finder metadata
+.DS_Store
