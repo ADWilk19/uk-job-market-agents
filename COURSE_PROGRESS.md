@@ -193,46 +193,27 @@ Complete this at the end of **each** new lesson:
 - Next lesson starting point:
 ```
 
-### Lesson 11 — Evidence-grounded salary extraction
+### Lesson 11 — LLM Salary Extraction and Verification
 
-- **Date:** 13 October 2026
-- **Branch:** `lesson/11-salary-extraction`
-- **Status:** In progress
-- **Objective:** Extract salary information from advertisements while preserving evidence and enforcing deterministic verification.
+**Status:** Complete
 
-**Completed:**
+- Introduced `SalaryExtractionResult` for structured LLM output.
+- Implemented OpenAI salary extraction using structured responses.
+- Added deterministic verification of salary values, periods and
+  supporting evidence.
+- Introduced `SalaryReviewStatus`:
+  `VERIFIED`, `REVIEW_REQUIRED`, `NOT_DISCLOSED`.
+- Implemented `run_salary_workflow()` to coordinate extraction
+  and verification.
+- Added mocked API tests, workflow tests and regression coverage.
+- Completed a live OpenAI smoke test using an annual salary range.
+- Improved evidence parsing to support a salary label and trailing
+  punctuation without relaxing full-string matching.
 
-- Introduced `SalaryExtractionResult`.
-- Reused the existing Pydantic `SalaryQuote` contract.
-- Implemented salary evidence provenance checks.
-- Introduced `SalaryAssessment` and `SalaryReviewStatus`.
-- Implemented deterministic numerical range verification.
-- Reused `SalaryPeriod` for payment-period verification.
-- Added safeguards for conflicting payment periods.
+**Validation:** 111 passed, 1 xfailed (2026-10-13).
 
-**Files changed:**
-
-- `src/uk_job_market_agents/agents/salary_extractor.py`
-- `src/uk_job_market_agents/agents/salary_review.py`
-- `tests/agents/test_salary_extractor.py`
-- `tests/agents/test_salary_review.py`
-
-**Tests:**
-
-- Salary review: 8 passed.
-- Full suite: 104 passed, 1 xfailed.
-
-**Architecture decisions:**
-
-- LLMs propose salary interpretations and supporting evidence.
-- Pydantic validates salary structure and invariants.
-- Deterministic Python verifies evidence and salary periods.
-- Unsupported or contradictory evidence requires review.
-- Verified daily/hourly rates remain subject to separate analytics eligibility rules.
-
-**Next step:**
-Integrate salary extraction with the existing OpenAI client using mocked responses and deterministic tests.
-
+**Next:** Lesson 12 — Salary extraction CSV output and integration
+with the existing analytics pipeline.
 
 ## 10. Open housekeeping items
 
