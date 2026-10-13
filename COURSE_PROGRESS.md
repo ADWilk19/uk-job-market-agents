@@ -1,8 +1,8 @@
 # UK Job Market Agents — Course Progress
 
-**Status:** Active  
-**Last updated:** 12 October 2026  
-**Repository:** `uk-job-market-agents`  
+**Status:** Active
+**Last updated:** 13 October 2026
+**Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
 > **Source of truth:** This is a course handover assembled from our working sessions, not an automated audit of the repository. Confirm exact lesson numbers, branches and test counts with Git before treating them as definitive.
@@ -18,7 +18,7 @@
 ## 2. Current technical baseline
 
 | Area | Current understanding |
-|---|---|
+| ---- | --------------------- |
 | Language | Python 3.10.20 |
 | Environment | Local `.venv` |
 | Project packaging | `pyproject.toml` |
@@ -59,9 +59,11 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Rules vs LLM comparison | Completed | CLI comparison output developed and formatted. |
 | Evaluation metrics | Completed | Accuracy and disagreement measures added. |
 | Disagreement analysis | Completed | Investigation of differing predictions and their causes. |
-| Analytics integration | Completed / check scope | Analytics work completed on branch `lesson/07-analytics-integration`; test naming issue resolved. |
-| Salary analysis and CSV output | Completed / verify against repo | `write_salary_analysis_csv`, output contract, tests and README documentation discussed and reportedly green. |
-| Next lesson | To plan | Choose after checking current `main`, the latest commit and README. |
+| Lesson 7 — Analytics integration | Completed | Deterministic salary summaries, guarded comparisons and analysis-ready output rows. |
+| Lesson 8 — CSV export | Completed | Deterministic salary analysis CSV serialization. |
+| Lesson 9 — Salary contract | Completed | SalaryQuote, SalaryPeriod and annual salary eligibility policy. |
+| Lesson 10 — Portfolio hardening | Completed | CSV contract regression tests, documentation and GitHub Actions CI. |
+| Lesson 11 — Salary extraction | In progress | Evidence-grounded extraction, deterministic verification and review states. |
 
 ### Domain vocabulary
 
@@ -95,16 +97,28 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 
 ## 4. Git and testing history
 
-Known branch names from sessions:
+### Branch history
 
-- `main`
-- `lesson/05-evaluation-metrics`
-- `lesson/06-disagreement-analyis` *(spelling as previously recorded; verify in Git)*
-- `lesson/07-analytics-integration`
+| Branch | Purpose |
+| --- | --- |
+| `main` | Stable integration branch |
+| `lesson/05-evaluation-metrics` | Classification evaluation metrics |
+| `lesson/06-disagreement-analyis` | Disagreement analysis |
+| `lesson/07-analytics-integration` | Salary analytics and output rows |
+| `lesson/08-csv-export` | CSV serialization |
+| `lesson/09-salary-contract` | Salary validation and eligibility policy |
+| `lesson/10-output-contract-ci` | CSV contract tests and GitHub Actions |
+| `lesson/11-salary-extraction` | Evidence-grounded salary extraction (active) |
 
-Historical milestones reported during lessons included **24 passed / 1 xfailed**, **27 passed / 1 xfailed**, and **44 passed / 1 xfailed**, followed by later reports of all tests green. **Do not infer that 44 is the latest test count.**
+**Current working branch:** `lesson/11-salary-extraction`
 
-The most recently shown terminal prompt was on `main` with a clean working tree, but the current branch, HEAD and test results should be checked afresh.
+### Testing history
+
+Earlier milestones included 24, 27 and 44 passing tests, each with one expected failure.
+
+The latest confirmed full-suite result is **103 passed, 1 xfailed** (13 October 2026).
+
+The full suite should be rerun after the latest salary-review test.
 
 ## 5. Recommended next-session verification
 
@@ -179,10 +193,51 @@ Complete this at the end of **each** new lesson:
 - Next lesson starting point:
 ```
 
+### Lesson 11 — Evidence-grounded salary extraction
+
+- **Date:** 13 October 2026
+- **Branch:** `lesson/11-salary-extraction`
+- **Status:** In progress
+- **Objective:** Extract salary information from advertisements while preserving evidence and enforcing deterministic verification.
+
+**Completed:**
+
+- Introduced `SalaryExtractionResult`.
+- Reused the existing Pydantic `SalaryQuote` contract.
+- Implemented salary evidence provenance checks.
+- Introduced `SalaryAssessment` and `SalaryReviewStatus`.
+- Implemented deterministic numerical range verification.
+- Reused `SalaryPeriod` for payment-period verification.
+- Added safeguards for conflicting payment periods.
+
+**Files changed:**
+
+- `src/uk_job_market_agents/agents/salary_extractor.py`
+- `src/uk_job_market_agents/agents/salary_review.py`
+- `tests/agents/test_salary_extractor.py`
+- `tests/agents/test_salary_review.py`
+
+**Tests:**
+
+- Salary review: 8 passed.
+- Full suite: 104 passed, 1 xfailed.
+
+**Architecture decisions:**
+
+- LLMs propose salary interpretations and supporting evidence.
+- Pydantic validates salary structure and invariants.
+- Deterministic Python verifies evidence and salary periods.
+- Unsupported or contradictory evidence requires review.
+- Verified daily/hourly rates remain subject to separate analytics eligibility rules.
+
+**Next step:**
+Integrate salary extraction with the existing OpenAI client using mocked responses and deterministic tests.
+
+
 ## 10. Open housekeeping items
 
-- [ ] Verify actual lesson titles and numbering against Git history.
-- [ ] Confirm CSV export work is committed and merged into `main`.
-- [ ] Record current full-suite test count.
-- [ ] Decide next lesson topic.
-- [ ] Add a short handover entry after each subsequent lesson.
+- [ ] Confirm Lesson 11 full-suite test results.
+- [ ] Commit and push Lesson 11 salary verification changes.
+- [ ] Review existing OpenAI integration before adding salary extraction.
+- [ ] Add mocked tests for the salary extraction API.
+- [ ] Update course progress at the end of Lesson 11.
