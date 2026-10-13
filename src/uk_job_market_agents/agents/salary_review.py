@@ -10,9 +10,11 @@ from uk_job_market_agents.agents.salary_extractor import (
 from uk_job_market_agents.models.salary import SalaryPeriod
 
 SALARY_RANGE_PATTERN = re.compile(
+    r"(?:Salary:\s*)?"
     r"£(\d{1,3}(?:,\d{3})+|\d+)\s*[-–]\s*"
     r"£(\d{1,3}(?:,\d{3})+|\d+)"
-    r"\s+(?:per annum|per year|annually|per day|daily|per hour|hourly)",
+    r"\s+(?:per annum|per year|annually|per day|daily|per hour|hourly)"
+    r"\.?",
     re.IGNORECASE,
 )
 PERIOD_EXPRESSIONS = {

@@ -1,3 +1,5 @@
+from openai import OpenAI
+
 from pydantic import BaseModel, ConfigDict
 
 from uk_job_market_agents.models.salary import SalaryQuote
@@ -34,6 +36,56 @@ def require_salary_evidence(
     if result.evidence not in advert_text:
         raise ValueError(
             "Salary evidence was not found in the advertisement"
+        )
+
+    return result
+
+
+def extract_salary_with_llm(
+    advert_text: str,
+) -> SalaryExtractionResult:
+    """Extract structured salary information from a job advertisement."""
+    return _call_salary_model(advert_text)
+
+
+def _call_salary_model(
+    advert_text: str,
+) -> SalaryExtractionResult:
+    """Call OpenAI to extract structured salary information."""
+
+    client = OpenAI()
+
+    prompt = f"""
+Extract salary information from the following UK job advertisement.
+
+Return a salary quotation only when the advertisement explicitly
+discloses a salary or pay rate.
+
+Rules:
+- Do not infer or estimate salaries.
+- Extract the minimum and maximum amounts when provided.
+- Use null for an unspecified bound.
+- Identify the payment period: year, day, or hour.
+- Use GBP as the currency.
+- Copy the supporting salary evidence exactly from the advertisement.
+- If no salary is disclosed, return null for both salary and evidence.
+- Do not convert daily or hourly rates into annual salaries.
+
+Advertisement:
+{advert_text}
+"""
+
+    response = client.responses.parse(
+        model="gpt-5.6-luna",
+        input=prompt,
+        text_format=SalaryExtractionResult,
+    )
+
+    result = response.output_parsed
+
+    if result is None:
+        raise RuntimeError(
+            "Salary extractor did not return a parsed result"
         )
 
     return result

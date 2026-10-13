@@ -159,3 +159,26 @@ def test_flags_conflicting_salary_periods():
 
     assert assessment.status == SalaryReviewStatus.REVIEW_REQUIRED
     assert assessment.reason is not None
+
+
+def test_verifies_salary_with_label_and_punctuation():
+    advert = (
+        "Senior Data Engineer. "
+        "Salary: £65,000–£80,000 per annum. "
+        "Hybrid working."
+    )
+
+    extraction = SalaryExtractionResult(
+        salary={
+            "salary_min": 65000,
+            "salary_max": 80000,
+            "period": SalaryPeriod.YEAR,
+            "currency": "GBP",
+        },
+        evidence="Salary: £65,000–£80,000 per annum.",
+    )
+
+    assessment = assess_salary_extraction(advert, extraction)
+
+    assert assessment.status == SalaryReviewStatus.VERIFIED
+    assert assessment.reason is None
