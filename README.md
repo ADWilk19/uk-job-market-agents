@@ -27,6 +27,8 @@ The project separates responsibilities across several components:
 | Pydantic models | Validate structured job advertisement data |
 | Classification rules | Apply deterministic role and working-pattern classifications |
 | LLM classifier | Interpret job advertisements using a language model |
+| LLM salary extractor | Extract structured salary quotations and supporting evidence |
+| Salary verification | Check extracted values against evidence and assign review status |
 | Evaluation | Compare classification results and measure performance |
 | Adjudication | Help resolve disagreements between classification methods |
 | Workflow | Coordinate classification results and review decisions |
@@ -83,6 +85,17 @@ For example, an approved Data Engineer advertisement offering
 £500–£600 per day remains eligible for role-family and working-pattern
 analysis, even though its annual salary fields are empty.
 
+## Salary extraction and analytical eligibility
+
+The system uses structured LLM output to identify salary information and supporting evidence.
+Deterministic verification assigns a review status before the extracted salary is considered for analytics.
+All salary assessments can be exported to an auditable CSV, including those requiring review or containing no disclosed salary.
+Only verified GBP annual salary ranges with both bounds present are eligible for annual salary statistics.
+Daily and hourly rates are not annualised. Ineligible salaries are excluded from salary calculations without
+removing their associated advertisements from job counts.
+
+The salary integration adapter has been tested, but we have not yet verified that every production workflow invokes it.
+
 ## CSV Export Contract
 
 `write_salary_analysis_csv` accepts a sequence of `SalaryAnalysisRow`
@@ -106,6 +119,24 @@ The exporter guarantees:
 The export contains aggregated salary-analysis summaries rather than
 individual job advertisements.
 
+### Salary extraction CSV
+
+`write_salary_extraction_csv()` exports individual salary assessments,
+including verified, review-required, and not-disclosed results.
+
+The export contains eight columns:
+
+```csv
+job_id,salary_min,salary_max,period,currency,evidence,review_status,review_reason
+```
+
+The exporter preserves input order, uses LF line endings, and represents
+missing values as empty fields. Identical ordered inputs produce identical
+CSV bytes.
+
+This record-level audit export is separate from the aggregated salary
+analysis CSV.
+
 ## Testing
 
 The project uses pytest to validate model contracts, classification
@@ -128,13 +159,12 @@ is under development.
   of real UK job advertisements.
 - Analytical records do not currently preserve original salary
   quotations.
-- A record-level export suitable for comprehensive job-market
-  analysis has not yet been implemented.
+- A comprehensive record-level export combining job classifications, salary assessments, and provenance has not yet been implemented.
 
 ## Planned Development
 
-1. Integrate salary extraction into the LLM workflow.
-2. Connect classification and salary processing into an
+1. Connect verified salary assessments to the production analytical workflow.
+2. Integrate classification and salary processing into an
    end-to-end pipeline.
 3. Acquire and validate real UK job advertisements.
 4. Develop analysis-ready datasets with appropriate provenance.

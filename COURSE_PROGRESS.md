@@ -63,7 +63,8 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 8 — CSV export | Completed | Deterministic salary analysis CSV serialization. |
 | Lesson 9 — Salary contract | Completed | SalaryQuote, SalaryPeriod and annual salary eligibility policy. |
 | Lesson 10 — Portfolio hardening | Completed | CSV contract regression tests, documentation and GitHub Actions CI. |
-| Lesson 11 — Salary extraction | In progress | Evidence-grounded extraction, deterministic verification and review states. |
+| Lesson 11 — Salary extraction | Completed | Evidence-grounded extraction, deterministic verification and review states. |
+| Lesson 12 — Salary extraction CSV and integration | Implementation complete; validation pending | Auditable extraction CSV, salary eligibility policy and analytics integration tests. |
 
 ### Domain vocabulary
 
@@ -109,14 +110,19 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/09-salary-contract` | Salary validation and eligibility policy |
 | `lesson/10-output-contract-ci` | CSV contract tests and GitHub Actions |
 | `lesson/11-salary-extraction` | Evidence-grounded salary extraction (active) |
+| `lesson/12-salary-extraction-csv` | Salary extraction CSV and analytics eligibility integration |
 
-**Current working branch:** `lesson/11-salary-extraction`
+**Current working branch:** `lesson/12-salary-extraction-csv`
 
 ### Testing history
 
 Earlier milestones included 24, 27 and 44 passing tests, each with one expected failure.
 
-The latest confirmed full-suite result is **103 passed, 1 xfailed** (13 October 2026).
+The latest confirmed full-suite result is **111 passed, 1 xfailed**
+(13 October 2026, Lesson 11).
+
+Lesson 12's focused tests have passed. The full regression suite
+is pending.
 
 The full suite should be rerun after the latest salary-review test.
 
@@ -215,10 +221,23 @@ Complete this at the end of **each** new lesson:
 **Next:** Lesson 12 — Salary extraction CSV output and integration
 with the existing analytics pipeline.
 
+### Lesson 12 — Salary Extraction CSV and Analytics Integration
+
+**Status:** Complete, pending final regression tests and commit.
+
+- Implemented an auditable, deterministic salary extraction CSV exporter.
+- Added eligibility checks for verified annual GBP salary ranges.
+- Excluded unverified, daily-rate, and incomplete salary ranges from annual analytics.
+- Integrated salary assessments with `AnalyticalJobRecord`.
+- Confirmed that ineligible salaries do not affect aggregate statistics.
+- Added parametrized eligibility tests and integration tests.
+- Updated the README to document the new contracts and limitations.
+
+**Remaining limitation:** The salary integration adapter is tested,
+but its use across production workflows has not yet been verified.
+
 ## 10. Open housekeeping items
 
-- [ ] Confirm Lesson 11 full-suite test results.
-- [ ] Commit and push Lesson 11 salary verification changes.
-- [ ] Review existing OpenAI integration before adding salary extraction.
-- [ ] Add mocked tests for the salary extraction API.
-- [ ] Update course progress at the end of Lesson 11.
+- [ ] Run the complete Lesson 12 regression suite.
+- [ ] Commit and push Lesson 12.
+- [ ] Verify that production workflows consistently apply salary eligibility.
