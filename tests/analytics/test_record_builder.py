@@ -72,6 +72,44 @@ def test_excludes_salary_that_is_not_annual():
     assert record.salary_midpoint is None
 
 
+def test_builds_record_without_salary():
+    resolution = WorkflowResolution(
+        resolved=ResolvedClassification(
+            role_family=RoleFamily.DATA_SCIENCE,
+            work_pattern=WorkPattern.REMOTE,
+        ),
+        requires_review=False,
+        review_reason=None,
+    )
+
+    record = build_analytical_record(
+        title="Data Scientist",
+        resolution=resolution,
+        salary=None,
+    )
+
+    assert record is not None
+    assert record.salary_min is None
+    assert record.salary_max is None
+    assert record.salary_midpoint is None
+
+
+def test_does_not_build_record_without_resolution():
+    resolution = WorkflowResolution(
+        resolved=None,
+        requires_review=False,
+        review_reason=None,
+    )
+
+    record = build_analytical_record(
+        title="Unclassified Data Role",
+        resolution=resolution,
+        salary=None,
+    )
+
+    assert record is None
+
+
 def test_does_not_build_record_when_review_is_required():
     resolution = WorkflowResolution(
         resolved=None,
@@ -86,3 +124,26 @@ def test_does_not_build_record_when_review_is_required():
     )
 
     assert record is None
+
+
+def test_builder_preserves_company_and_location():
+    resolution = WorkflowResolution(
+        resolved=ResolvedClassification(
+            role_family=RoleFamily.DATA_ENGINEERING,
+            work_pattern=WorkPattern.HYBRID,
+        ),
+        requires_review=False,
+        review_reason=None,
+    )
+
+    record = build_analytical_record(
+        title="Senior Data Engineer",
+        resolution=resolution,
+        salary=None,
+        company_name="Example Analytics Ltd",
+        location_raw="Southampton, Hampshire",
+    )
+
+    assert record is not None
+    assert record.company_name == "Example Analytics Ltd"
+    assert record.location_raw == "Southampton, Hampshire"

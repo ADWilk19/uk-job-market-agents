@@ -51,6 +51,7 @@ class JobPosting(BaseModel):
     raw_title: str
     raw_description: str
     location_raw: str | None = None
+    company_name: str | None = None
 
     # Classified / derived fields
     role_family: RoleFamily = RoleFamily.UNKNOWN

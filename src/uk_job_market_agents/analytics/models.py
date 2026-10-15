@@ -8,8 +8,12 @@ from uk_job_market_agents.models.job_posting import (
 
 class AnalyticalJobRecord(BaseModel):
     title: str
+    company_name: str | None = None
+    location_raw: str | None = None
+
     role_family: RoleFamily
     work_pattern: WorkPattern
+
     salary_min: int | None = None
     salary_max: int | None = None
 

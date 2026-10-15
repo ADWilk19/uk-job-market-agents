@@ -15,6 +15,8 @@ def build_analytical_record(
     title: str,
     resolution: WorkflowResolution,
     salary: SalaryQuote | None,
+    company_name: str | None = None,
+    location_raw: str | None = None,
 ) -> AnalyticalJobRecord | None:
     if resolution.requires_review or resolution.resolved is None:
         return None
@@ -27,42 +29,6 @@ def build_analytical_record(
         work_pattern=resolution.resolved.work_pattern,
         salary_min=salary_min,
         salary_max=salary_max,
+        company_name=company_name,
+        location_raw=location_raw,
     )
-
-
-def test_builds_record_without_salary():
-    resolution = WorkflowResolution(
-        resolved=ResolvedClassification(
-            role_family=RoleFamily.DATA_SCIENCE,
-            work_pattern=WorkPattern.REMOTE,
-        ),
-        requires_review=False,
-        review_reason=None,
-    )
-
-    record = build_analytical_record(
-        title="Data Scientist",
-        resolution=resolution,
-        salary=None,
-    )
-
-    assert record is not None
-    assert record.salary_min is None
-    assert record.salary_max is None
-    assert record.salary_midpoint is None
-
-
-def test_does_not_build_record_without_resolution():
-    resolution = WorkflowResolution(
-        resolved=None,
-        requires_review=False,
-        review_reason=None,
-    )
-
-    record = build_analytical_record(
-        title="Unclassified Data Role",
-        resolution=resolution,
-        salary=None,
-    )
-
-    assert record is None

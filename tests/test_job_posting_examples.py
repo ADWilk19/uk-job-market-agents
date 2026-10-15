@@ -149,3 +149,31 @@ def test_lead_data_engineer_contract():
     assert job.role_family == RoleFamily.DATA_ENGINEERING
     assert job.seniority == Seniority.LEAD
     assert job.work_pattern == WorkPattern.REMOTE
+
+
+def test_job_posting_preserves_company_and_location():
+    job = JobPosting(
+        source_id="job-001",
+        source="example",
+        collected_at=datetime.now(),
+        raw_title="Senior Data Engineer",
+        raw_description="Python, SQL and dbt.",
+        company_name="Example Analytics Ltd",
+        location_raw="Southampton, Hampshire",
+    )
+
+    assert job.company_name == "Example Analytics Ltd"
+    assert job.location_raw == "Southampton, Hampshire"
+
+
+def test_job_posting_without_company():
+    job = JobPosting(
+        source_id="job-002",
+        source="example",
+        collected_at=datetime.now(),
+        raw_title="Data Scientist",
+        raw_description="Python and machine learning.",
+    )
+
+    assert job.company_name is None
+    assert job.location_raw is None

@@ -76,6 +76,9 @@ from an approved classification and its associated salary quotation.
 
 The function:
 
+- Accepts optional `company_name` and `location_raw` parameters,
+  preserving the advertised employer and location. These fields are
+  not yet populated by an end-to-end workflow.
 - Returns `None` when classification review is required.
 - Returns `None` when no resolved classification is available.
 - Retains approved advertisements without eligible annual salaries.

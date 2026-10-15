@@ -64,3 +64,30 @@ def test_salary_midpoint_is_none_when_salary_is_incomplete():
     )
 
     assert record.salary_midpoint is None
+
+
+def test_analytical_record_preserves_company_and_location():
+    record = AnalyticalJobRecord(
+        title="Senior Data Engineer",
+        company_name="Example Analytics Ltd",
+        location_raw="Southampton, Hampshire",
+        role_family=RoleFamily.DATA_ENGINEERING,
+        work_pattern=WorkPattern.HYBRID,
+        salary_min=60000,
+        salary_max=80000,
+    )
+
+    assert record.company_name == "Example Analytics Ltd"
+    assert record.location_raw == "Southampton, Hampshire"
+    assert record.salary_midpoint == 70000
+
+
+def test_analytical_record_accepts_missing_company_and_location():
+    record = AnalyticalJobRecord(
+        title="Data Scientist",
+        role_family=RoleFamily.DATA_SCIENCE,
+        work_pattern=WorkPattern.REMOTE,
+    )
+
+    assert record.company_name is None
+    assert record.location_raw is None
