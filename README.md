@@ -32,6 +32,7 @@ The project separates responsibilities across several components:
 | Evaluation | Compare classification results and measure performance |
 | Adjudication | Help resolve disagreements between classification methods |
 | Workflow | Coordinate classification results and review decisions |
+| Orchestration | Coordinate single-job classification, salary verification and analytical record construction |
 | Salary policy | Determine eligibility for annual salary analysis |
 | Analytics | Construct analytical records and calculate summary metrics |
 | CSV export | Serialize analytical results for downstream consumption |
@@ -77,8 +78,8 @@ from an approved classification and its associated salary quotation.
 The function:
 
 - Accepts optional `company_name` and `location_raw` parameters,
-  preserving the advertised employer and location. These fields are
-  not yet populated by an end-to-end workflow.
+  preserving the advertised employer and location. `process_job()`
+  supplies these fields from the `JobPosting`.
 - Returns `None` when classification review is required.
 - Returns `None` when no resolved classification is available.
 - Retains approved advertisements without eligible annual salaries.
@@ -97,7 +98,39 @@ Only verified GBP annual salary ranges with both bounds present are eligible for
 Daily and hourly rates are not annualised. Ineligible salaries are excluded from salary calculations without
 removing their associated advertisements from job counts.
 
-The salary integration adapter has been tested, but we have not yet verified that every production workflow invokes it.
+The single-job orchestrator `process_job()` applies the salary integration
+adapter after salary extraction and verification. This path is covered by
+orchestration tests; real-world ingestion is not yet connected.
+
+## Orchestration
+
+`process_job(job: JobPosting) -> OrchestrationResult` coordinates the
+single-job classification and salary workflows.
+
+The orchestrator:
+
+- Classifies the raw title and description, then resolves the classification.
+- Builds an analytical record, preserving `company_name` and `location_raw`.
+- Stops before salary extraction if classification review is required or no
+  resolved classification is available.
+- For an approved advertisement, extracts and verifies salary information
+  from the raw description, then applies the salary assessment to the record.
+- Retains the approved advertisement when salary review is required, salary
+  is not disclosed, or the quotation is ineligible for annual analysis.
+  Annual salary fields remain empty in these cases.
+
+`OrchestrationResult` contains `classification` (`WorkflowResolution`),
+`analytical_record` (`AnalyticalJobRecord` or `None`) and
+`salary_assessment` (`SalaryAssessment` or `None`). When classification
+prevents record construction, both optional fields are `None`.
+
+Only verified, complete GBP annual salary ranges populate annual salary
+fields. Classification review and salary review therefore have distinct
+consequences: the former prevents an analytical record; the latter does
+not remove an otherwise approved advertisement from job counts.
+
+This orchestrator processes one `JobPosting` at a time. Batch orchestration
+and processing outcomes are the next lesson.
 
 ## CSV Export Contract
 
@@ -151,11 +184,16 @@ Run the complete test suite:
 python -m pytest -q
 ```
 
-Some tests are marked as expected failures while functionality
-is under development.
+The latest confirmed full-suite result is **139 passed, 1 xfailed**
+(16 October 2026), following completion of Lessons 12–14. The expected
+failure remains recorded while functionality is under development.
+
+The tested baseline is `main` at commit `6dc5650`, fast-forwarded from
+Lesson 14 and pushed to `origin/main`.
 
 ## Current Limitations
 
+- Batch orchestration and explicit batch processing outcomes are not yet implemented.
 - The project currently relies on a small collection of example
   job advertisements.
 - The end-to-end pipeline has not yet been connected to a source
@@ -166,9 +204,8 @@ is under development.
 
 ## Planned Development
 
-1. Connect verified salary assessments to the production analytical workflow.
-2. Integrate classification and salary processing into an
-   end-to-end pipeline.
+1. Complete Lesson 15 — Batch Orchestration and Processing Outcomes.
+2. Extend the tested single-job workflow to support batch processing.
 3. Acquire and validate real UK job advertisements.
 4. Develop analysis-ready datasets with appropriate provenance.
 5. Explore job-market trends using locally hosted Python visualisations and interactive dashboards.

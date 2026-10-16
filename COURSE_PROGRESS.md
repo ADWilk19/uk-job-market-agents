@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 13 October 2026
+**Last updated:** 16 October 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -26,7 +26,7 @@
 | Tests | `pytest`, with `src` on `pythonpath` and `tests` as test path |
 | Version control | Git; remote repository with `main` and lesson branches |
 | Data | Five hand-labelled (“golden”) job adverts used for early evaluation |
-| Model use | OpenAI API integrated for LLM classification |
+| Model use | OpenAI API integrated for LLM classification and salary extraction |
 | Secrets | `secrets.json` excluded from Git via `.gitignore` |
 
 Most recently shared `pyproject.toml`:
@@ -64,7 +64,10 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 9 — Salary contract | Completed | SalaryQuote, SalaryPeriod and annual salary eligibility policy. |
 | Lesson 10 — Portfolio hardening | Completed | CSV contract regression tests, documentation and GitHub Actions CI. |
 | Lesson 11 — Salary extraction | Completed | Evidence-grounded extraction, deterministic verification and review states. |
-| Lesson 12 — Salary extraction CSV and integration | Implementation complete; validation pending | Auditable extraction CSV, salary eligibility policy and analytics integration tests. |
+| Lesson 12 — Salary extraction CSV and integration | Completed | Auditable extraction CSV, salary eligibility policy and analytics integration tests; commit `ce6deed`. |
+| Lesson 13 — Company and location contracts | Completed | Company and raw location preserved in analytical contracts; commit `5c899ae`. |
+| Lesson 14 — Orchestration | Completed | Single-job classification, salary verification and analytical record construction through `process_job()`; commit `6dc5650`. |
+| Lesson 15 — Batch Orchestration and Processing Outcomes | Next; not implemented | Extend single-job orchestration to batches and explicit processing outcomes. |
 
 ### Domain vocabulary
 
@@ -109,22 +112,30 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/08-csv-export` | CSV serialization |
 | `lesson/09-salary-contract` | Salary validation and eligibility policy |
 | `lesson/10-output-contract-ci` | CSV contract tests and GitHub Actions |
-| `lesson/11-salary-extraction` | Evidence-grounded salary extraction (active) |
+| `lesson/11-salary-extraction` | Evidence-grounded salary extraction |
 | `lesson/12-salary-extraction-csv` | Salary extraction CSV and analytics eligibility integration |
+| `lesson/13-company-location-contracts` | Company and location metadata contracts |
+| `lesson/14-orchestration` | Single-job classification and salary orchestration |
 
-**Current working branch:** `lesson/12-salary-extraction-csv`
+**Current working branch:** `main`
+
+**Stable baseline:** `6dc5650` (`feat: orchestrate classification and salary verification`).
+Lessons 12–14 were committed and pushed on their lesson branches. The
+verified comparison was `0 8` for `main...lesson/14-orchestration`; `main`
+was then fast-forwarded from `4394860` to `6dc5650` and pushed to
+`origin/main`. Lesson branches are retained as course checkpoints.
 
 ### Testing history
 
 Earlier milestones included 24, 27 and 44 passing tests, each with one expected failure.
 
-The latest confirmed full-suite result is **111 passed, 1 xfailed**
-(13 October 2026, Lesson 11).
+The latest confirmed full-suite result is **139 passed, 1 xfailed**
+(16 October 2026, after integrating Lesson 14 into `main`).
 
-Lesson 12's focused tests have passed. The full regression suite
-is pending.
-
-The full suite should be rerun after the latest salary-review test.
+This full regression run covers the completed Lessons 12–14. The earlier
+Lesson 11 milestone was **111 passed, 1 xfailed** (13 October 2026).
+The latest result was reported from `python -m pytest -q` before the
+successful push of `main` to `origin/main`.
 
 ## 5. Recommended next-session verification
 
@@ -138,18 +149,19 @@ python --version
 python -m pytest -q
 ```
 
-Then inspect `README.md`, `pyproject.toml`, the `src/` and `tests/` layout, and the salary CSV implementation to confirm what is merged and what is still pending.
+Then inspect `README.md`, `pyproject.toml`, the `src/` and `tests/` layout, and the single-job orchestrator before starting Lesson 15. The recorded baseline is `main` at `6dc5650`; check for subsequent changes.
 
 **Do not make changes solely to reconcile this document.** Correct this document to match the repository where they differ.
 
 ## 6. Proposed next milestones
 
-These are **proposals, not claims of agreed course scope**:
+**Next lesson:** Lesson 15 — Batch Orchestration and Processing Outcomes.
+Batch processing has not yet been implemented.
 
-1. Audit the current codebase and reconcile lesson titles/numbers with Git.
-2. Review the salary analytics pipeline end to end: validated inputs → aggregation → CSV export.
-3. Add meaningful integration tests and edge cases where coverage is thin.
-4. Decide whether the next learning goal is richer evaluation, ingestion of live job adverts, or a simple end-to-end agent workflow.
+1. Start Lesson 15 from the tested, pushed `main` baseline at `6dc5650`.
+2. Extend single-job orchestration to batches and define explicit processing outcomes.
+3. Preserve the distinction between classification review and salary review, with meaningful tests for batch behaviour.
+4. Subsequently acquire and validate real UK job advertisements, develop provenance and a comprehensive record-level export, and explore job-market trends. These remain future milestones.
 5. Update README and this progress file at each completed milestone.
 
 ## 7. Working agreement for future lessons
@@ -223,7 +235,9 @@ with the existing analytics pipeline.
 
 ### Lesson 12 — Salary Extraction CSV and Analytics Integration
 
-**Status:** Complete, pending final regression tests and commit.
+**Status:** Complete
+
+**Branch / commit:** `lesson/12-salary-extraction-csv` / `ce6deed`; pushed and integrated into `main`.
 
 - Implemented an auditable, deterministic salary extraction CSV exporter.
 - Added eligibility checks for verified annual GBP salary ranges.
@@ -233,11 +247,70 @@ with the existing analytics pipeline.
 - Added parametrized eligibility tests and integration tests.
 - Updated the README to document the new contracts and limitations.
 
-**Remaining limitation:** The salary integration adapter is tested,
-but its use across production workflows has not yet been verified.
+**Validation:** Covered by the latest full-suite result of 139 passed,
+1 xfailed after Lesson 14 integration.
+
+**Next:** Lesson 13 — Company and location contracts (completed below).
+
+### Lesson 13 — Company and Location Contracts
+
+**Status:** Complete
+
+**Branch / commit:** `lesson/13-company-location-contracts` / `5c899ae`; pushed and integrated into `main`.
+
+- Preserved `company_name` and `location_raw` in analytical contracts.
+- Added model and record-builder regression coverage for this metadata.
+- Established the metadata contract subsequently used by `process_job()`.
+
+**Validation:** Covered by the latest full-suite result of 139 passed,
+1 xfailed after Lesson 14 integration.
+
+**Next:** Lesson 14 — Orchestration (completed below).
+
+### Lesson 14 — Orchestration
+
+**Status:** Complete
+
+**Branch / commit:** `lesson/14-orchestration` / `6dc5650`; pushed, fast-forwarded into `main`, and pushed to `origin/main`.
+
+- Implemented `process_job(job: JobPosting) -> OrchestrationResult` to
+  coordinate classification, salary verification and record construction.
+- Runs classification on the raw title and description, resolves the
+  classification, then attempts to build the analytical record.
+- Passes `company_name` and `location_raw` from the job to the record builder.
+- Stops before salary extraction when classification review is required
+  or no resolved classification is available.
+- For approved advertisements, runs salary extraction and verification on
+  the raw description and applies the assessment to the analytical record.
+- Returns the classification resolution plus optional analytical record
+  and salary assessment. Both optional fields are `None` when classification
+  prevents record construction.
+- Added orchestration tests covering the single-job workflow.
+
+**Decisions / trade-offs:** Classification review prevents an analytical
+record and skips salary processing. Salary review does not exclude an
+otherwise approved advertisement. Only verified, complete GBP annual
+salary ranges populate annual salary fields; review-required,
+not-disclosed and ineligible salaries remain excluded from annual salary
+statistics while approved advertisements remain in job counts.
+
+**Validation:** 139 passed, 1 xfailed (16 October 2026), on `main` after
+fast-forward integration and before the successful push.
+
+**Remaining limitations:** Single-job orchestration is implemented; batch
+processing and real UK job-advert ingestion are not. Analytical records
+do not preserve original salary quotations. A comprehensive record-level
+export combining classifications, salary assessments and provenance is
+still outstanding; the existing salary extraction audit CSV remains a
+separate export.
+
+**Next:** Lesson 15 — Batch Orchestration and Processing Outcomes.
 
 ## 10. Open housekeeping items
 
-- [ ] Run the complete Lesson 12 regression suite.
-- [ ] Commit and push Lesson 12.
-- [ ] Verify that production workflows consistently apply salary eligibility.
+- [x] Complete Lesson 12 regression validation, commit and push.
+- [x] Complete and push Lessons 13 and 14.
+- [x] Verify that `process_job()` applies salary assessments and eligibility to approved analytical records.
+- [x] Fast-forward `main` to `6dc5650`, run the full suite (139 passed, 1 xfailed), and push to `origin/main`.
+- [ ] Commit and push the README and course-progress documentation refresh.
+- [ ] Start Lesson 15 — Batch Orchestration and Processing Outcomes from the stable baseline.
