@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 16 October 2026
+**Last updated:** 19 October 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -67,7 +67,7 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 12 — Salary extraction CSV and integration | Completed | Auditable extraction CSV, salary eligibility policy and analytics integration tests; commit `ce6deed`. |
 | Lesson 13 — Company and location contracts | Completed | Company and raw location preserved in analytical contracts; commit `5c899ae`. |
 | Lesson 14 — Orchestration | Completed | Single-job classification, salary verification and analytical record construction through `process_job()`; commit `6dc5650`. |
-| Lesson 15 — Batch Orchestration and Processing Outcomes | Next; not implemented | Extend single-job orchestration to batches and explicit processing outcomes. |
+| Lesson 15 — Batch Orchestration and Processing Outcomes | Completed; awaiting commit | Sequential batch processing, validated outcomes, failure isolation and 19 passing batch tests. |
 
 ### Domain vocabulary
 
@@ -116,8 +116,9 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/12-salary-extraction-csv` | Salary extraction CSV and analytics eligibility integration |
 | `lesson/13-company-location-contracts` | Company and location metadata contracts |
 | `lesson/14-orchestration` | Single-job classification and salary orchestration |
+| `lesson/15-batch-orchestration` | Sequential batch processing and validated processing outcomes |
 
-**Current working branch:** `main`
+**Current working branch:** `lesson/15-batch-orchestration`
 
 **Stable baseline:** `6dc5650` (`feat: orchestrate classification and salary verification`).
 Lessons 12–14 were committed and pushed on their lesson branches. The
@@ -129,13 +130,15 @@ was then fast-forwarded from `4394860` to `6dc5650` and pushed to
 
 Earlier milestones included 24, 27 and 44 passing tests, each with one expected failure.
 
-The latest confirmed full-suite result is **139 passed, 1 xfailed**
-(16 October 2026, after integrating Lesson 14 into `main`).
+The latest confirmed full-suite result is **158 passed, 1 xfailed**
+(19 October 2026, Lesson 15).
 
-This full regression run covers the completed Lessons 12–14. The earlier
-Lesson 11 milestone was **111 passed, 1 xfailed** (13 October 2026).
-The latest result was reported from `python -m pytest -q` before the
-successful push of `main` to `origin/main`.
+The batch orchestration test module contains 19 passing test cases.
+The Lesson 15 implementation is on `lesson/15-batch-orchestration`,
+awaiting commit and integration into `main`.
+
+The last confirmed integrated baseline on `main` passed
+139 tests with 1 expected failure.
 
 ## 5. Recommended next-session verification
 
@@ -149,20 +152,38 @@ python --version
 python -m pytest -q
 ```
 
-Then inspect `README.md`, `pyproject.toml`, the `src/` and `tests/` layout, and the single-job orchestrator before starting Lesson 15. The recorded baseline is `main` at `6dc5650`; check for subsequent changes.
+Then inspect `README.md`, `COURSE_PROGRESS.md`, and the batch
+orchestration implementation before starting the next lesson.
+
+The latest completed implementation is Lesson 15 on
+`lesson/15-batch-orchestration`, with 158 passed and 1 xfailed.
+
+Confirm whether Lesson 15 has been committed and integrated into
+`main` before beginning further development.
 
 **Do not make changes solely to reconcile this document.** Correct this document to match the repository where they differ.
 
 ## 6. Proposed next milestones
 
-**Next lesson:** Lesson 15 — Batch Orchestration and Processing Outcomes.
-Batch processing has not yet been implemented.
+**Next development objective:** Batch-level operational metrics
+and processing summaries.
 
-1. Start Lesson 15 from the tested, pushed `main` baseline at `6dc5650`.
-2. Extend single-job orchestration to batches and define explicit processing outcomes.
-3. Preserve the distinction between classification review and salary review, with meaningful tests for batch behaviour.
-4. Subsequently acquire and validate real UK job advertisements, develop provenance and a comprehensive record-level export, and explore job-market trends. These remain future milestones.
-5. Update README and this progress file at each completed milestone.
+Lesson 15 established sequential batch orchestration with explicit
+processing outcomes and failure isolation.
+
+Proposed milestones:
+
+1. Introduce deterministic batch summaries, including counts of
+   processed, review-required and failed advertisements.
+2. Calculate processing and review rates from validated batch outcomes.
+3. Establish a stable output contract for operational reporting.
+4. Acquire and validate real UK job advertisements, preserving
+   source identifiers and provenance.
+5. Develop operational monitoring and job-market visualisations
+   suitable for the portfolio website.
+
+Concurrency, retries and persistent processing history remain
+future considerations rather than immediate requirements.
 
 ## 7. Working agreement for future lessons
 
@@ -297,14 +318,69 @@ statistics while approved advertisements remain in job counts.
 **Validation:** 139 passed, 1 xfailed (16 October 2026), on `main` after
 fast-forward integration and before the successful push.
 
-**Remaining limitations:** Single-job orchestration is implemented; batch
-processing and real UK job-advert ingestion are not. Analytical records
-do not preserve original salary quotations. A comprehensive record-level
-export combining classifications, salary assessments and provenance is
-still outstanding; the existing salary extraction audit CSV remains a
-separate export.
+**Limitations at Lesson 14 completion:** Only single-job orchestration
+was implemented at this milestone. Batch processing was subsequently
+introduced in Lesson 15.
+
+Real UK job-advert ingestion remains outstanding. Analytical records
+do not preserve original salary quotations, and a comprehensive
+record-level export combining classifications, salary assessments
+and provenance has not yet been implemented.
+
+The existing salary extraction audit CSV remains a separate export.
 
 **Next:** Lesson 15 — Batch Orchestration and Processing Outcomes.
+
+### Lesson 15 — Batch Orchestration and Processing Outcomes
+
+**Date:** 19 October 2026
+
+**Status:** Implementation complete; awaiting commit and integration.
+
+**Branch:** `lesson/15-batch-orchestration`
+
+**Objective:** Extend single-job orchestration to process multiple
+advertisements while preserving individual outcomes and isolating failures.
+
+**Implementation:**
+
+- Introduced `process_jobs()` for sequential batch processing.
+- Reused the existing `process_job()` workflow without modifying its logic.
+- Introduced `ProcessingStatus` with `PROCESSED`, `REVIEW_REQUIRED`
+  and `FAILED` values.
+- Introduced `BatchProcessingOutcome` to preserve job identifiers,
+  orchestration results, processing statuses and error information.
+- Used Pydantic model validators to enforce outcome invariants.
+- Implemented exception handling so one processing failure does not
+  prevent subsequent advertisements from being processed.
+- Preserved input order and individual processing outcomes.
+
+**Files added:**
+
+- `src/uk_job_market_agents/agents/batch_orchestration.py`
+- `tests/agents/test_batch_orchestration.py`
+
+**Validation:**
+
+- Focused batch tests: 19 passed.
+- Full regression suite: 158 passed, 1 xfailed (19 October 2026).
+
+**Architectural decisions:**
+
+- Batch orchestration remains deterministic and sequential.
+- Classification review is distinct from processing failure.
+- Salary eligibility remains independent of processing status.
+- LLM interactions remain within the existing single-job workflows.
+- Ordinary processing exceptions are isolated and recorded.
+
+**Remaining limitations:**
+
+- No concurrency, retries or persistent processing history.
+- No real UK job-advertisement ingestion.
+- No batch-level metrics or reporting dashboard.
+
+**Next:** Introduce batch-level operational metrics and processing
+summaries, building towards ingestion observability and portfolio reporting.
 
 ## 10. Open housekeeping items
 
@@ -312,5 +388,10 @@ separate export.
 - [x] Complete and push Lessons 13 and 14.
 - [x] Verify that `process_job()` applies salary assessments and eligibility to approved analytical records.
 - [x] Fast-forward `main` to `6dc5650`, run the full suite (139 passed, 1 xfailed), and push to `origin/main`.
-- [ ] Commit and push the README and course-progress documentation refresh.
-- [ ] Start Lesson 15 — Batch Orchestration and Processing Outcomes from the stable baseline.
+- [x] Commit and push the README and course-progress documentation refresh following Lesson 14.
+- [x] Start Lesson 15 from the tested Lesson 14 baseline.
+- [x] Implement sequential batch orchestration and validated processing outcomes.
+- [x] Verify failure isolation and mixed-batch behaviour.
+- [x] Run the full Lesson 15 regression suite (158 passed, 1 xfailed).
+- [ ] Commit and push Lesson 15 implementation and documentation.
+- [ ] Integrate Lesson 15 into `main` after final verification.

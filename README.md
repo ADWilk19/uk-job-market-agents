@@ -33,6 +33,7 @@ The project separates responsibilities across several components:
 | Adjudication | Help resolve disagreements between classification methods |
 | Workflow | Coordinate classification results and review decisions |
 | Orchestration | Coordinate single-job classification, salary verification and analytical record construction |
+| Batch orchestration | Process advertisements sequentially, preserve outcomes and isolate failures |
 | Salary policy | Determine eligibility for annual salary analysis |
 | Analytics | Construct analytical records and calculate summary metrics |
 | CSV export | Serialize analytical results for downstream consumption |
@@ -129,8 +130,31 @@ fields. Classification review and salary review therefore have distinct
 consequences: the former prevents an analytical record; the latter does
 not remove an otherwise approved advertisement from job counts.
 
-This orchestrator processes one `JobPosting` at a time. Batch orchestration
-and processing outcomes are the next lesson.
+The single-job orchestrator is reused by the batch-processing workflow
+described below.
+
+## Batch Orchestration
+
+The batch orchestration workflow processes multiple job advertisements
+sequentially using the existing `process_job()` function.
+
+`process_jobs()` returns a list of `BatchProcessingOutcome` objects,
+preserving advertisement identifiers and input order.
+
+Each outcome has one of three statuses:
+
+- `PROCESSED`: Classification completed without requiring review.
+- `REVIEW_REQUIRED`: Classification completed but requires review.
+- `FAILED`: Processing raised an exception.
+
+Pydantic model validators enforce consistency between processing status,
+classification decisions, orchestration results, and error messages.
+
+Individual processing failures are isolated so subsequent advertisements
+can continue processing.
+
+The current implementation is sequential and does not support
+concurrency, retries, or persistent processing history.
 
 ## CSV Export Contract
 
@@ -184,16 +208,19 @@ Run the complete test suite:
 python -m pytest -q
 ```
 
-The latest confirmed full-suite result is **139 passed, 1 xfailed**
-(16 October 2026), following completion of Lessons 12–14. The expected
-failure remains recorded while functionality is under development.
+The latest confirmed full-suite result is **158 passed, 1 xfailed**
+(19 October 2026), following implementation of Lesson 15.
+
+The Lesson 15 implementation is on `lesson/15-batch-orchestration`.
+It has not yet been merged into `main`.
 
 The tested baseline is `main` at commit `6dc5650`, fast-forwarded from
 Lesson 14 and pushed to `origin/main`.
 
 ## Current Limitations
 
-- Batch orchestration and explicit batch processing outcomes are not yet implemented.
+- Batch processing is sequential, without concurrency, retries or
+  persistent processing history.
 - The project currently relies on a small collection of example
   job advertisements.
 - The end-to-end pipeline has not yet been connected to a source
@@ -204,8 +231,11 @@ Lesson 14 and pushed to `origin/main`.
 
 ## Planned Development
 
-1. Complete Lesson 15 — Batch Orchestration and Processing Outcomes.
-2. Extend the tested single-job workflow to support batch processing.
-3. Acquire and validate real UK job advertisements.
-4. Develop analysis-ready datasets with appropriate provenance.
-5. Explore job-market trends using locally hosted Python visualisations and interactive dashboards.
+1. Develop batch-level operational metrics and structured processing reports.
+2. Acquire and validate real UK job advertisements.
+3. Develop analysis-ready datasets with appropriate provenance.
+4. Explore job-market trends using interactive dashboards.
+5. Investigate processing retries, persistence and concurrency where justified.
+6. Acquire and validate real UK job advertisements.
+7. Develop analysis-ready datasets with appropriate provenance.
+8. Explore job-market trends using locally hosted Python visualisations and interactive dashboards.
