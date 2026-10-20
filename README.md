@@ -34,6 +34,7 @@ The project separates responsibilities across several components:
 | Workflow | Coordinate classification results and review decisions |
 | Orchestration | Coordinate single-job classification, salary verification and analytical record construction |
 | Batch orchestration | Process advertisements sequentially, preserve outcomes and isolate failures |
+| Batch metrics | Calculate validated processing counts and derived rates |
 | Salary policy | Determine eligibility for annual salary analysis |
 | Analytics | Construct analytical records and calculate summary metrics |
 | CSV export | Serialize analytical results for downstream consumption |
@@ -156,6 +157,35 @@ can continue processing.
 The current implementation is sequential and does not support
 concurrency, retries, or persistent processing history.
 
+## Batch Operational Metrics
+
+`BatchSummary` provides deterministic aggregate statistics derived
+from validated `BatchProcessingOutcome` objects.
+
+The `summarize_batch()` function calculates:
+
+- Total advertisements processed in the batch.
+- Advertisements successfully processed.
+- Advertisements requiring classification review.
+- Advertisements that failed during processing.
+
+`BatchSummary` also exposes three calculated proportions:
+
+- `processed_rate`
+- `review_rate`
+- `failure_rate`
+
+Rates range from 0.0 to 1.0. Empty batches return zero counts and
+zero rates, avoiding division-by-zero errors.
+
+Pydantic validation enforces non-negative counts and requires the
+individual status counts to sum to the batch total.
+
+Batch aggregation is deterministic and does not invoke an LLM.
+
+The calculated rates are Python properties and are not currently
+included in Pydantic's standard `model_dump()` output.
+
 ## CSV Export Contract
 
 `write_salary_analysis_csv` accepts a sequence of `SalaryAnalysisRow`
@@ -208,14 +238,14 @@ Run the complete test suite:
 python -m pytest -q
 ```
 
-The latest confirmed full-suite result is **158 passed, 1 xfailed**
-(19 October 2026), following implementation of Lesson 15.
+The latest confirmed full-suite result is **167 passed, 1 xfailed**
+(20 October 2026), following implementation of Lesson 16.
 
-The Lesson 15 implementation is on `lesson/15-batch-orchestration`.
-It has not yet been merged into `main`.
+The Lesson 16 implementation is on `lesson/16-batch-metrics`,
+awaiting commit and integration into `main`.
 
-The tested baseline is `main` at commit `6dc5650`, fast-forwarded from
-Lesson 14 and pushed to `origin/main`.
+The latest confirmed integrated baseline is `main` at commit
+`25acb8a`, following completion of Lesson 15.
 
 ## Current Limitations
 
@@ -231,11 +261,8 @@ Lesson 14 and pushed to `origin/main`.
 
 ## Planned Development
 
-1. Develop batch-level operational metrics and structured processing reports.
+1. Establish stable serialization and reporting contracts for batch metrics.
 2. Acquire and validate real UK job advertisements.
 3. Develop analysis-ready datasets with appropriate provenance.
-4. Explore job-market trends using interactive dashboards.
+4. Build operational monitoring and job-market dashboards.
 5. Investigate processing retries, persistence and concurrency where justified.
-6. Acquire and validate real UK job advertisements.
-7. Develop analysis-ready datasets with appropriate provenance.
-8. Explore job-market trends using locally hosted Python visualisations and interactive dashboards.
