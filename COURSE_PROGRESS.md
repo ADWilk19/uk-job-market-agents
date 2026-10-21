@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 20 October 2026
+**Last updated:** 21 October 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -68,7 +68,8 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 13 — Company and location contracts | Completed | Company and raw location preserved in analytical contracts; commit `5c899ae`. |
 | Lesson 14 — Orchestration | Completed | Single-job classification, salary verification and analytical record construction through `process_job()`; commit `6dc5650`. |
 | Lesson 15 — Batch Orchestration and Processing Outcomes | Completed | Sequential batch processing, validated outcomes, failure isolation; commit `25acb8a`. |
-| Lesson 16 — Batch Operational Metrics | Implementation complete; awaiting commit | Deterministic processing counts, calculated rates, Pydantic invariants and nine passing tests. |
+| Lesson 16 — Batch Operational Metrics | Completed | Deterministic counts, calculated rates and Pydantic invariants; commit `c9be38a`. |
+| Lesson 17 — Batch Metrics Reporting Contracts | Implementation complete; awaiting commit | Deterministic CSV export, seven-column schema, six-decimal-place rates and four passing tests. |
 
 ### Domain vocabulary
 
@@ -119,29 +120,29 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/14-orchestration` | Single-job classification and salary orchestration |
 | `lesson/15-batch-orchestration` | Sequential batch processing and validated processing outcomes |
 | `lesson/16-batch-metrics` | Deterministic batch summaries and operational rates |
+| `lesson/17-batch-reporting` | Deterministic batch-metrics CSV serialization |
 
-**Current working branch:** `lesson/16-batch-metrics`
+**Current working branch:** `lesson/17-batch-reporting`
 
-**Stable integration baseline:** `25acb8a`
-(`feat: add fault-isolated batch orchestration`).
+**Stable integration baseline:** `c9be38a`
+(`feat: add validated batch operational metrics`).
 
-Lesson 15 was committed, pushed and fast-forwarded into `main`.
-The updated `main` branch was subsequently pushed to `origin/main`.
+Lesson 16 was committed, pushed and fast-forwarded into `main`.
 
-Lesson 16 is currently under development on
-`lesson/16-batch-metrics` and has not yet been integrated.
+Lesson 17 is currently implemented on `lesson/17-batch-reporting`
+and has not yet been committed or integrated.
 
 ### Testing history
 
 Earlier milestones included 24, 27 and 44 passing tests, each with one expected failure.
 
-The latest confirmed full-suite result is **167 passed, 1 xfailed**
-(20 October 2026, Lesson 16).
+The latest confirmed full-suite result is **171 passed, 1 xfailed**
+(21 October 2026, Lesson 17).
 
-The Lesson 16 batch-summary module has nine passing test cases.
+The Lesson 17 CSV exporter has four passing tests.
 
-The latest integrated baseline on `main` is Lesson 15,
-commit `25acb8a`, which passed 158 tests with one expected failure.
+The latest integrated baseline on `main` is Lesson 16,
+commit `c9be38a`, which passed 167 tests with one expected failure.
 
 ## 5. Recommended next-session verification
 
@@ -157,8 +158,8 @@ python -m pytest -q
 
 Review the latest README, course progress and batch-summary implementation.
 
-Lesson 16 has been implemented and tested on
-`lesson/16-batch-metrics`.
+Lesson 17 has been implemented and tested on
+`lesson/17-batch-reporting`.
 
 Before starting the next lesson, confirm whether Lesson 16 has been
 committed, pushed and integrated into `main`.
@@ -167,18 +168,15 @@ committed, pushed and integrated into `main`.
 
 ## 6. Proposed next milestones
 
-**Next development objective:** Stable batch-metrics reporting outputs.
+**Next development objective:** Real UK Job Advertisement Ingestion.
 
-Lesson 16 established deterministic processing counts, calculated
-rates and validated batch summaries.
+Our initial focus should be on selecting suitable data sources, retaining
+provenance, validating incoming records and developing repeatable ingestion tests.
 
 Proposed milestones:
 
-1. Design a stable serialization contract for batch metrics.
-2. Define how calculated rates should appear in reporting outputs.
-3. Test deterministic formatting, missing data and empty batches.
-4. Acquire and validate real UK job advertisements.
-5. Develop operational and job-market dashboards for the portfolio.
+1. Acquire and validate real UK job advertisements.
+2. Develop operational and job-market dashboards for the portfolio.
 
 Concurrency, retries and persistent processing history remain
 future considerations.
@@ -384,7 +382,7 @@ summaries, building towards ingestion observability and portfolio reporting.
 
 **Date:** 20 October 2026
 
-**Status:** Implementation complete; awaiting commit and integration.
+**Status:** Complete; integrated into `main`, recording commit `c9be38a`
 
 **Branch:** `lesson/16-batch-metrics`
 
@@ -420,7 +418,7 @@ validated batch-processing outcomes.
 - Empty batches return zero rates to avoid division by zero.
 - Pydantic enforces consistency between individual counts and totals.
 
-**Remaining limitations:**
+**Limitations at Lesson 16 completion:**
 
 - Calculated rates are not included in standard Pydantic `model_dump()` output.
 - No dedicated batch-metrics serialization or reporting contract.
@@ -429,6 +427,52 @@ validated batch-processing outcomes.
 
 **Next:** Establish a stable reporting contract for batch metrics,
 including serialization and reproducible outputs.
+
+### Lesson 17 — Batch Metrics Reporting Contracts
+
+**Date:** 21 October 2026
+
+**Status:** Implementation complete; awaiting commit and integration.
+
+**Branch:** `lesson/17-batch-reporting`
+
+**Objective:** Serialize validated batch operational metrics into a stable, deterministic CSV reporting format.
+
+**Implementation:**
+
+- Introduced `write_batch_summary_csv()` using Python's standard `csv` module.
+- Defined a fixed seven-column CSV schema.
+- Serialized counts and calculated rates from `BatchSummary`.
+- Formatted rates as proportions with six decimal places.
+- Implemented LF line endings and a final newline.
+- Supported empty batches with zero counts and rates.
+- Accepted a writable text stream to support files and in-memory output.
+
+**Files added:**
+
+- `src/uk_job_market_agents/analytics/batch_output.py`
+- `tests/analytics/test_batch_output.py`
+
+**Validation:**
+
+- Focused batch-output tests: 4 passed.
+- Full regression suite: 171 passed, 1 xfailed (21 October 2026).
+
+**Architectural decisions:**
+
+- Aggregation and serialization remain separate responsibilities.
+- The exporter accepts a single validated `BatchSummary`.
+- The CSV schema and numeric formatting are deterministic.
+- No LLM calls or analytical calculations occur during serialization.
+- Existing batch orchestration and analytics remain unchanged.
+
+**Remaining limitations:**
+
+- No reporting history, batch identifiers or reporting periods.
+- No combined, record-level job advertisement export.
+- No real UK job-advertisement ingestion or operational dashboard.
+
+**Next:** Investigate reliable acquisition and ingestion of real UK job advertisements, including provenance, validation and reproducible input fixtures.
 
 ## 10. Open housekeeping items
 
@@ -443,7 +487,10 @@ including serialization and reproducible outputs.
 - [x] Run the full Lesson 15 regression suite (158 passed, 1 xfailed).
 - [x] Commit, push and integrate Lesson 15 into `main` at `25acb8a`.
 - [x] Implement deterministic batch summaries and calculated rates.
-- [x] Validate counts and empty-batch behaviour with nine focused tests.
 - [x] Run the Lesson 16 regression suite (167 passed, 1 xfailed).
-- [ ] Commit and push Lesson 16 implementation and documentation.
-- [ ] Integrate Lesson 16 into `main`.
+- [x] Commit, push and integrate Lesson 16 into `main` at `c9be38a`.
+- [x] Implement deterministic batch-metrics CSV export.
+- [x] Verify stable columns, formatting and empty-batch behaviour.
+- [x] Run the Lesson 17 regression suite (171 passed, 1 xfailed).
+- [ ] Commit and push Lesson 17 implementation and documentation.
+- [ ] Integrate Lesson 17 into `main`.

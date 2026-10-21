@@ -38,6 +38,7 @@ The project separates responsibilities across several components:
 | Salary policy | Determine eligibility for annual salary analysis |
 | Analytics | Construct analytical records and calculate summary metrics |
 | CSV export | Serialize analytical results for downstream consumption |
+| Batch reporting | Serialize validated batch metrics into deterministic CSV output |
 
 ## Salary Validation and Analytical Records
 
@@ -186,6 +187,31 @@ Batch aggregation is deterministic and does not invoke an LLM.
 The calculated rates are Python properties and are not currently
 included in Pydantic's standard `model_dump()` output.
 
+### Batch Metrics CSV Export
+
+`write_batch_summary_csv()` serializes a validated `BatchSummary`
+into a deterministic, single-row CSV report.
+
+The export uses this fixed column order:
+
+```csv
+total,processed,review_required,failed,processed_rate,review_rate,failure_rate
+```
+
+Processing, review and failure rates are represented as proportions
+between 0 and 1, formatted to six decimal places.
+The exporter guarantees:
+
+- A stable seven-column schema.
+- Exactly one data row per summary.
+- LF ('\n') line endings and a final newline.
+- Zero counts and zero rates for empty batches.
+- Identical output for identical input summaries.
+
+Serialization is separate from aggregation and does not invoke an LLM.
+The exporter accepts a writable text stream, allowing output to
+in-memory buffers or files.
+
 ## CSV Export Contract
 
 `write_salary_analysis_csv` accepts a sequence of `SalaryAnalysisRow`
@@ -238,14 +264,14 @@ Run the complete test suite:
 python -m pytest -q
 ```
 
-The latest confirmed full-suite result is **167 passed, 1 xfailed**
-(20 October 2026), following implementation of Lesson 16.
+The latest confirmed full-suite result is **171 passed, 1 xfailed**
+(21 October 2026), following implementation of Lesson 17.
 
-The Lesson 16 implementation is on `lesson/16-batch-metrics`,
-awaiting commit and integration into `main`.
+Lesson 17 is being developed on `lesson/17-batch-reporting`
+and has not yet been committed or integrated into `main`.
 
-The latest confirmed integrated baseline is `main` at commit
-`25acb8a`, following completion of Lesson 15.
+The latest integrated baseline is `main` at commit `c9be38a`,
+following completion of Lesson 16.
 
 ## Current Limitations
 
@@ -261,8 +287,7 @@ The latest confirmed integrated baseline is `main` at commit
 
 ## Planned Development
 
-1. Establish stable serialization and reporting contracts for batch metrics.
-2. Acquire and validate real UK job advertisements.
-3. Develop analysis-ready datasets with appropriate provenance.
-4. Build operational monitoring and job-market dashboards.
-5. Investigate processing retries, persistence and concurrency where justified.
+1. Acquire and validate real UK job advertisements.
+2. Develop analysis-ready datasets with appropriate provenance.
+3. Build operational monitoring and job-market dashboards.
+4. Investigate processing retries, persistence and concurrency where justified.
