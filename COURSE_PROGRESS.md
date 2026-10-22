@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 21 October 2026
+**Last updated:** 22 October 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -69,7 +69,8 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 14 — Orchestration | Completed | Single-job classification, salary verification and analytical record construction through `process_job()`; commit `6dc5650`. |
 | Lesson 15 — Batch Orchestration and Processing Outcomes | Completed | Sequential batch processing, validated outcomes, failure isolation; commit `25acb8a`. |
 | Lesson 16 — Batch Operational Metrics | Completed | Deterministic counts, calculated rates and Pydantic invariants; commit `c9be38a`. |
-| Lesson 17 — Batch Metrics Reporting Contracts | Implementation complete; awaiting commit | Deterministic CSV export, seven-column schema, six-decimal-place rates and four passing tests. |
+| Lesson 17 — Batch Metrics Reporting Contracts | Completed | Deterministic CSV export, seven-column schema and four passing tests; commit `3f91a68`. |
+| Lesson 18 — Job Advertisement Ingestion Contract | Implementation complete; awaiting commit | Stronger source validation, timezone-aware timestamps, URL provenance, raw-text validation and 19 new passing tests. |
 
 ### Domain vocabulary
 
@@ -121,28 +122,29 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/15-batch-orchestration` | Sequential batch processing and validated processing outcomes |
 | `lesson/16-batch-metrics` | Deterministic batch summaries and operational rates |
 | `lesson/17-batch-reporting` | Deterministic batch-metrics CSV serialization |
+| `lesson/18-ingestion-contract` | Strengthen canonical job-advertisement ingestion validation |
 
-**Current working branch:** `lesson/17-batch-reporting`
+**Current working branch:** `lesson/18-ingestion-contract`
 
-**Stable integration baseline:** `c9be38a`
-(`feat: add validated batch operational metrics`).
+**Stable integration baseline:** `3f91a68`
+(`feat: add deterministic batch metrics CSV reporting`).
 
-Lesson 16 was committed, pushed and fast-forwarded into `main`.
+Lesson 17 was committed, pushed and integrated into `main`.
 
-Lesson 17 is currently implemented on `lesson/17-batch-reporting`
-and has not yet been committed or integrated.
+Lesson 18 has been implemented and tested but has not yet
+been committed or integrated.
 
 ### Testing history
 
 Earlier milestones included 24, 27 and 44 passing tests, each with one expected failure.
 
-The latest confirmed full-suite result is **171 passed, 1 xfailed**
-(21 October 2026, Lesson 17).
+The latest confirmed full-suite result is **190 passed, 1 xfailed**
+(22 October 2026, Lesson 18).
 
-The Lesson 17 CSV exporter has four passing tests.
+The `test_job_posting.py` module contains 23 passing tests.
 
-The latest integrated baseline on `main` is Lesson 16,
-commit `c9be38a`, which passed 167 tests with one expected failure.
+The latest integrated baseline on `main` is Lesson 17,
+commit `3f91a68`, which passed 171 tests with one expected failure.
 
 ## 5. Recommended next-session verification
 
@@ -474,6 +476,59 @@ including serialization and reproducible outputs.
 
 **Next:** Investigate reliable acquisition and ingestion of real UK job advertisements, including provenance, validation and reproducible input fixtures.
 
+### Lesson 18 — Job Advertisement Ingestion Contract
+
+**Date:** 22 October 2026
+
+**Status:** Implementation complete; awaiting commit and integration.
+
+**Branch:** `lesson/18-ingestion-contract`
+
+**Objective:** Strengthen the canonical `JobPosting` model to support reliable ingestion of external job advertisements.
+
+**Implementation:**
+
+- Added field validation rejecting blank or whitespace-only `source` and `source_id` values.
+- Required timezone-aware `collected_at` timestamps using Pydantic's `AwareDatetime`.
+- Introduced optional `source_url` provenance using `HttpUrl`.
+- Added validation rejecting blank `raw_title` and `raw_description` values.
+- Preserved original non-blank source identifiers and advertisement text.
+- Retained existing classification defaults, salary validation and optional employer/location fields.
+- Updated existing test fixtures to use timezone-aware timestamps.
+
+**Files modified:**
+
+- `src/uk_job_market_agents/models/job_posting.py`
+- `tests/test_job_posting.py`
+- `tests/test_job_posting_examples.py`
+- `tests/agents/test_orchestration.py`
+- `tests/agents/test_batch_orchestration.py`
+
+**Validation:**
+
+- Focused `JobPosting` tests: 23 passed.
+- Full regression suite: 190 passed, 1 xfailed (22 October 2026).
+- Added 19 passing test cases compared with the Lesson 17 baseline.
+- Resolved 14 regression failures caused by outdated timezone-naive test fixtures.
+
+**Architectural decisions:**
+
+- `JobPosting` remains the canonical internal advertisement model.
+- External provider adapters will translate their data into this contract.
+- Standard Pydantic types enforce timestamps and URL validity.
+- Custom field validators enforce meaningful identifiers and raw text.
+- Ingestion validation remains deterministic and separate from LLM interpretation.
+- Source URLs are optional to preserve compatibility with existing records.
+
+**Remaining limitations:**
+
+- No external provider adapter or live job ingestion.
+- No persistent storage, deduplication implementation or ingestion history.
+- URL validation does not confirm that an advertisement exists or remains accessible.
+- No combined record-level export including full source provenance.
+
+**Next:** Develop a source-specific adapter using reproducible JSON fixtures, followed by carefully controlled external API integration.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.
@@ -492,5 +547,10 @@ including serialization and reproducible outputs.
 - [x] Implement deterministic batch-metrics CSV export.
 - [x] Verify stable columns, formatting and empty-batch behaviour.
 - [x] Run the Lesson 17 regression suite (171 passed, 1 xfailed).
-- [ ] Commit and push Lesson 17 implementation and documentation.
-- [ ] Integrate Lesson 17 into `main`.
+- [x] Commit, push and integrate Lesson 17 into `main` at `3f91a68`.
+- [x] Strengthen source identity and advertisement content validation.
+- [x] Introduce timezone-aware timestamps and optional URL provenance.
+- [x] Update affected test fixtures for the new timestamp contract.
+- [x] Run the Lesson 18 regression suite (190 passed, 1 xfailed).
+- [ ] Commit and push Lesson 18 implementation and documentation.
+- [ ] Integrate Lesson 18 into `main`.

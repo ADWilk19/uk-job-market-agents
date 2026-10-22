@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import call, patch
 
 import pytest
@@ -59,7 +59,7 @@ def test_process_jobs_processes_each_advertisement_in_order():
         JobPosting(
             source_id=f"job-{i:03d}",
             source="example",
-            collected_at=datetime.now(),
+            collected_at=datetime.now(timezone.utc),
             raw_title="Data Engineer",
             raw_description="Python and SQL. Remote working.",
         )
@@ -216,7 +216,7 @@ def test_process_jobs_continues_after_failure():
             JobPosting(
                 source_id=f"job-{i:03d}",
                 source="example",
-                collected_at=datetime.now(),
+                collected_at=datetime.now(timezone.utc),
                 raw_title="Data Engineer",
                 raw_description="Python and SQL. Remote working.",
             )
@@ -247,7 +247,7 @@ def test_process_jobs_preserves_mixed_processing_outcomes():
         JobPosting(
             source_id=f"job-{i:03d}",
             source="example",
-            collected_at=datetime.now(),
+            collected_at=datetime.now(timezone.utc),
             raw_title="Data Engineer",
             raw_description="Python and SQL. Remote working.",
         )

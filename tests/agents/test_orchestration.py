@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from uk_job_market_agents.agents.classifier import ClassificationResult
@@ -48,7 +48,7 @@ def test_process_job_builds_approved_analytical_record():
     job = JobPosting(
         source_id="job-001",
         source="example",
-        collected_at=datetime.now(),
+        collected_at=datetime.now(timezone.utc),
         raw_title="Senior Data Engineer",
         raw_description="Python, SQL and dbt. Hybrid working.",
         company_name="Example Analytics Ltd",
@@ -105,7 +105,7 @@ def test_process_job_excludes_classification_requiring_review():
     job = JobPosting(
         source_id="job-002",
         source="example",
-        collected_at=datetime.now(),
+        collected_at=datetime.now(timezone.utc),
         raw_title="Senior Data Engineer",
         raw_description="Python, SQL and dbt. Hybrid working.",
         company_name="Example Analytics Ltd",
@@ -148,7 +148,7 @@ def test_process_job_includes_verified_annual_salary():
     job = JobPosting(
         source_id="job-003",
         source="example",
-        collected_at=datetime.now(),
+        collected_at=datetime.now(timezone.utc),
         raw_title="Senior Data Engineer",
         raw_description=(
             "Python, SQL and dbt. Hybrid working. "
@@ -212,7 +212,7 @@ def test_process_job_excludes_unverified_salary():
     job = JobPosting(
         source_id="job-004",
         source="example",
-        collected_at=datetime.now(),
+        collected_at=datetime.now(timezone.utc),
         raw_title="Senior Data Engineer",
         raw_description=(
             "Python, SQL and dbt. Hybrid working. "

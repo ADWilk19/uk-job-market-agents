@@ -40,6 +40,28 @@ The project separates responsibilities across several components:
 | CSV export | Serialize analytical results for downstream consumption |
 | Batch reporting | Serialize validated batch metrics into deterministic CSV output |
 
+## Job Advertisement Ingestion Contract
+
+`JobPosting` provides the canonical internal representation of a job advertisement, independently of the external data provider.
+
+Incoming advertisements must satisfy the following requirements:
+
+- `source` and `source_id` must contain non-whitespace characters.
+- `collected_at` must be a timezone-aware datetime.
+- `raw_title` and `raw_description` must contain non-whitespace characters.
+- `source_url` is optional but must be a valid HTTP/HTTPS URL when supplied.
+- `company_name` and `location_raw` remain optional.
+
+Validation rejects blank source fields and advertisement content without stripping or otherwise modifying valid raw strings.
+
+Newly collected advertisements can retain their default `UNKNOWN` classifications and `UNVALIDATED` status until the processing workflows evaluate them.
+
+The model preserves source identity and collection timestamps to support provenance and future deduplication.
+
+External source adapters will be responsible for translating provider-specific responses into validated `JobPosting` objects. No live ingestion adapter has yet been implemented.
+
+**Compatibility:** Introducing timezone-aware collection timestamps required updating existing test fixtures. The full regression suite passed with 190 tests and one expected failure on 22 October 2026.
+
 ## Salary Validation and Analytical Records
 
 Salary processing separates data validation, analytical eligibility,
@@ -204,7 +226,7 @@ The exporter guarantees:
 
 - A stable seven-column schema.
 - Exactly one data row per summary.
-- LF ('\n') line endings and a final newline.
+- LF (`\n`) line endings and a final newline.
 - Zero counts and zero rates for empty batches.
 - Identical output for identical input summaries.
 
@@ -264,14 +286,14 @@ Run the complete test suite:
 python -m pytest -q
 ```
 
-The latest confirmed full-suite result is **171 passed, 1 xfailed**
-(21 October 2026), following implementation of Lesson 17.
+The latest confirmed full-suite result is **190 passed, 1 xfailed**
+(22 October 2026), following implementation of Lesson 18.
 
-Lesson 17 is being developed on `lesson/17-batch-reporting`
+Lesson 18 is being developed on `lesson/18-ingestion-contract`
 and has not yet been committed or integrated into `main`.
 
-The latest integrated baseline is `main` at commit `c9be38a`,
-following completion of Lesson 16.
+The latest integrated baseline is `main` at commit `3f91a68`,
+following completion of Lesson 17.
 
 ## Current Limitations
 

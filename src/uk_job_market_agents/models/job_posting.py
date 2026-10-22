@@ -1,7 +1,13 @@
-from datetime import datetime
 from enum import Enum
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    Field,
+    HttpUrl,
+    field_validator,
+    model_validator,
+)
 
 
 class RoleFamily(str, Enum):
@@ -45,7 +51,8 @@ class JobPosting(BaseModel):
     # Source fields
     source_id: str
     source: str
-    collected_at: datetime
+    source_url: HttpUrl | None = None
+    collected_at: AwareDatetime
 
     # Raw input
     raw_title: str
@@ -73,6 +80,24 @@ class JobPosting(BaseModel):
         le=1.0,
     )
     validation_status: ValidationStatus = ValidationStatus.UNVALIDATED
+
+    @field_validator("source_id", "source")
+    @classmethod
+    def validate_source_fields(cls, value: str) -> str:
+        """Reject empty or whitespace-only source fields."""
+        if not value.strip():
+            raise ValueError("Source fields must not be empty")
+
+        return value
+
+    @field_validator("raw_title", "raw_description")
+    @classmethod
+    def validate_raw_content(cls, value: str) -> str:
+        """Reject empty or whitespace-only advertisement content."""
+        if not value.strip():
+            raise ValueError("Advertisement content must not be empty")
+
+        return value
 
     @model_validator(mode="after")
     def validate_salary_range(self):

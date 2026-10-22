@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
 from uk_job_market_agents.models.job_posting import (
     JobPosting,
@@ -12,7 +12,7 @@ def test_data_platform_specialist():
     job = JobPosting(
         source_id="fictional-001",
         source="lesson_fixture",
-        collected_at=datetime.now(),
+        collected_at=datetime.now(timezone.utc),
         raw_title="Data Platform Specialist",
         raw_description='''We are looking for someone to build and maintain our analytics
             platform. You will develop ELT pipelines, maintain dbt models,
@@ -42,7 +42,7 @@ def test_remote_senior_data_engineer():
     job = JobPosting(
         source_id="fictional-002",
         source="lesson_fixture",
-        collected_at=datetime.now(),
+        collected_at=datetime.now(timezone.utc),
         raw_title="Senior Data Engineer",
         raw_description='''Join our data platform team building production pipelines using
             Python, Airflow, AWS and PostgreSQL.
@@ -68,7 +68,7 @@ def test_remote_first_data_scientist():
     job = JobPosting(
         source_id="fictional-003",
         source="lesson_fixture",
-        collected_at=datetime.now(),
+        collected_at=datetime.now(timezone.utc),
         raw_title="Data Scientist",
         raw_description='''This is a remote-first role.
 
@@ -96,7 +96,7 @@ def test_early_career_analytics_engineer():
     job = JobPosting(
         source_id="fictional-004",
         source="lesson_fixture",
-        collected_at=datetime.now(),
+        collected_at=datetime.now(timezone.utc),
         raw_title="Early Career Analytics Engineer",
         raw_description='''Our two-year early-career programme is designed for people
             starting their career in analytics engineering.
@@ -125,7 +125,7 @@ def test_lead_data_engineer_contract():
     job = JobPosting(
         source_id="fictional-005",
         source="lesson_fixture",
-        collected_at=datetime.now(),
+        collected_at=datetime.now(timezone.utc),
         raw_title="Lead Data Engineer — 6 month contract",
         raw_description='''Remote UK
 
@@ -155,7 +155,7 @@ def test_job_posting_preserves_company_and_location():
     job = JobPosting(
         source_id="job-001",
         source="example",
-        collected_at=datetime.now(),
+        collected_at=datetime.now(timezone.utc),
         raw_title="Senior Data Engineer",
         raw_description="Python, SQL and dbt.",
         company_name="Example Analytics Ltd",
@@ -170,7 +170,7 @@ def test_job_posting_without_company():
     job = JobPosting(
         source_id="job-002",
         source="example",
-        collected_at=datetime.now(),
+        collected_at=datetime.now(timezone.utc),
         raw_title="Data Scientist",
         raw_description="Python and machine learning.",
     )
