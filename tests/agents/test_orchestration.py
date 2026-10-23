@@ -22,6 +22,7 @@ from uk_job_market_agents.agents.workflow import (
 )
 
 from uk_job_market_agents.models.job_posting import (
+    DescriptionCompleteness,
     JobPosting,
     RoleFamily,
     WorkPattern,
@@ -53,6 +54,7 @@ def test_process_job_builds_approved_analytical_record():
         raw_description="Python, SQL and dbt. Hybrid working.",
         company_name="Example Analytics Ltd",
         location_raw="Southampton, Hampshire",
+        description_completeness=DescriptionCompleteness.EXCERPT,
     )
 
     classification = ClassificationWorkflowResult.from_results(
@@ -99,6 +101,17 @@ def test_process_job_builds_approved_analytical_record():
 
     assert result.analytical_record.salary_min is None
     assert result.analytical_record.salary_max is None
+
+    # Source provenance survives successful orchestration.
+    assert result.source_id == job.source_id
+    assert result.source == job.source
+    assert result.source_url == job.source_url
+    assert result.collected_at == job.collected_at
+    assert (
+        result.description_completeness
+        == DescriptionCompleteness.EXCERPT
+    )
+
 
 
 def test_process_job_excludes_classification_requiring_review():
@@ -279,4 +292,46 @@ def test_process_job_excludes_unverified_salary():
     assert (
         result.salary_assessment.reason
         == "Extracted salary values disagree with evidence"
+    )
+
+
+def test_orchestration_preserves_source_provenance(monkeypatch):
+    job = JobPosting(
+        source_id="adzuna-12345",
+        source="adzuna",
+        source_url="https://www.adzuna.co.uk/jobs/details/12345",
+        collected_at=datetime(
+            2026, 10, 23, 8, 0, tzinfo=timezone.utc
+        ),
+        raw_title="Data Engineer",
+        raw_description="Python and SQL",
+        description_completeness=DescriptionCompleteness.EXCERPT,
+    )
+
+    # Avoid real agent/API calls in this contract test.
+    monkeypatch.setattr(
+        "uk_job_market_agents.agents.orchestration.run_classification_workflow",
+        lambda **kwargs: object(),
+    )
+
+
+    monkeypatch.setattr(
+        "uk_job_market_agents.agents.orchestration.resolve_classification",
+        lambda workflow: WorkflowResolution(
+            resolved=None,
+            requires_review=True,
+            review_reason=ReviewReason.ROLE_FAMILY,
+        ),
+    )
+
+
+    result = process_job(job)
+
+    assert result.source_id == job.source_id
+    assert result.source == job.source
+    assert result.source_url == job.source_url
+    assert result.collected_at == job.collected_at
+    assert (
+        result.description_completeness
+        == DescriptionCompleteness.EXCERPT
     )

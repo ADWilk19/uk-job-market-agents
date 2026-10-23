@@ -47,9 +47,15 @@ class ValidationStatus(str, Enum):
     INVALID = "invalid"
 
 
+class DescriptionCompleteness(str, Enum):
+    COMPLETE = "complete"
+    EXCERPT = "excerpt"
+    UNKNOWN = "unknown"
+
+
 class JobPosting(BaseModel):
     # Source fields
-    source_id: str
+    source_id: str = Field(strict=True, min_length=1)
     source: str
     source_url: HttpUrl | None = None
     collected_at: AwareDatetime
@@ -57,6 +63,9 @@ class JobPosting(BaseModel):
     # Raw input
     raw_title: str
     raw_description: str
+    description_completeness: DescriptionCompleteness = (
+        DescriptionCompleteness.UNKNOWN
+    )
     location_raw: str | None = None
     company_name: str | None = None
 

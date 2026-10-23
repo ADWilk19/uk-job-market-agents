@@ -70,7 +70,7 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 15 — Batch Orchestration and Processing Outcomes | Completed | Sequential batch processing, validated outcomes, failure isolation; commit `25acb8a`. |
 | Lesson 16 — Batch Operational Metrics | Completed | Deterministic counts, calculated rates and Pydantic invariants; commit `c9be38a`. |
 | Lesson 17 — Batch Metrics Reporting Contracts | Completed | Deterministic CSV export, seven-column schema and four passing tests; commit `3f91a68`. |
-| Lesson 18 — Job Advertisement Ingestion Contract | Implementation complete; awaiting commit | Stronger source validation, timezone-aware timestamps, URL provenance, raw-text validation and 19 new passing tests. |
+| Lesson 18 — Job Advertisement Ingestion Contract | Implementation complete; awaiting commit | Stronger source validation, timezone-aware timestamps, URL provenance, raw-text validation and 19 new passing tests; commit `6a94fea`. |
 
 ### Domain vocabulary
 
@@ -124,14 +124,13 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/17-batch-reporting` | Deterministic batch-metrics CSV serialization |
 | `lesson/18-ingestion-contract` | Strengthen canonical job-advertisement ingestion validation |
 
-**Current working branch:** `lesson/18-ingestion-contract`
+**Current working branch:** `lesson/19-source-adapters`
 
-**Stable integration baseline:** `3f91a68`
-(`feat: add deterministic batch metrics CSV reporting`).
+**Stable integration baseline:** `6a94fea`
 
-Lesson 17 was committed, pushed and integrated into `main`.
+Lesson 18 was committed, pushed and integrated into `main`.
 
-Lesson 18 has been implemented and tested but has not yet
+Lesson 19 has been implemented and tested but has not yet
 been committed or integrated.
 
 ### Testing history
@@ -528,6 +527,47 @@ including serialization and reproducible outputs.
 - No combined record-level export including full source provenance.
 
 **Next:** Develop a source-specific adapter using reproducible JSON fixtures, followed by carefully controlled external API integration.
+
+### Lesson 19 — Source Adapters and Provenance
+
+**Date:** 23 October 2026
+
+**Status:** Implementation complete; awaiting commit and integration.
+
+**Branch:** `lesson/19-source-adapters`
+
+**Objective:** Translate provider-specific job advertisements into the canonical `JobPosting` contract and preserve source provenance through orchestration.
+
+**Implementation:**
+
+- Introduced the Adzuna adapter, `adapt_adzuna_job()`.
+- Mapped provider identifiers, URLs, titles, descriptions, company names and locations into validated `JobPosting` instances.
+- Added deterministic validation for malformed nested provider metadata.
+- Introduced `DescriptionCompleteness` with `COMPLETE`, `EXCERPT` and `UNKNOWN` values.
+- Conservatively classified Adzuna descriptions as excerpts.
+- Extended `OrchestrationResult` to preserve source identifiers, URLs, collection timestamps and description completeness.
+- Verified provenance preservation for both approved advertisements and those requiring classification review.
+
+**Validation:**
+
+- Focused orchestration tests: 6 passed.
+- Full regression suite: **199 passed, 1 xfailed** (23 October 2026).
+- `git diff --check`: no whitespace errors.
+
+**Architectural decisions:**
+
+- Source adapters translate external data; Pydantic enforces the canonical contract.
+- Provider-specific completeness metadata is explicit rather than inferred by an LLM.
+- Provenance is retained in orchestration results without changing existing analytical CSV schemas.
+- Live API retrieval remains separate from source adaptation.
+
+**Remaining limitations:**
+
+- No live Adzuna API integration.
+- No persistent ingestion history or deduplication implementation.
+- No comprehensive record-level analytical export containing provenance.
+
+**Next:** Lesson 20 — Adzuna API integration, deterministic response fixtures, controlled requests and error handling.
 
 ## 10. Open housekeeping items
 

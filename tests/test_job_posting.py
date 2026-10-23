@@ -8,6 +8,7 @@ from uk_job_market_agents.models.job_posting import (
     RoleFamily,
     Seniority,
     WorkPattern,
+    DescriptionCompleteness,
 )
 
 
@@ -197,3 +198,35 @@ def test_blank_advertisement_content_is_rejected(field, value):
 
     with pytest.raises(ValidationError):
         JobPosting(**data)
+
+
+
+def test_description_completeness_defaults_to_unknown():
+    job = JobPosting(
+        source_id="abc123",
+        source="ad_example",
+        collected_at=datetime.now(timezone.utc),
+        raw_title="Data Engineer",
+        raw_description="Python and SQL",
+    )
+
+    assert job.description_completeness == DescriptionCompleteness.UNKNOWN
+
+
+
+def test_description_completeness_rejects_invalid_value():
+    with pytest.raises(ValidationError) as exc_info:
+        JobPosting(
+            source_id="abc123",
+            source="ad_example",
+            collected_at=datetime.now(timezone.utc),
+            raw_title="Data Engineer",
+            raw_description="Python and SQL",
+            description_completeness="probably_complete",
+        )
+
+    errors = exc_info.value.errors()
+
+    assert len(errors) == 1
+    assert errors[0]["loc"] == ("description_completeness",)
+    assert errors[0]["type"] == "enum"

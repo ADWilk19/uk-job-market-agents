@@ -25,6 +25,7 @@ The project separates responsibilities across several components:
 | Component | Responsibility |
 | --------- | -------------- |
 | Pydantic models | Validate structured job advertisement data |
+| Source adapters | Translate provider-specific advertisements into validated JobPosting objects |
 | Classification rules | Apply deterministic role and working-pattern classifications |
 | LLM classifier | Interpret job advertisements using a language model |
 | LLM salary extractor | Extract structured salary quotations and supporting evidence |
@@ -58,7 +59,13 @@ Newly collected advertisements can retain their default `UNKNOWN` classification
 
 The model preserves source identity and collection timestamps to support provenance and future deduplication.
 
-External source adapters will be responsible for translating provider-specific responses into validated `JobPosting` objects. No live ingestion adapter has yet been implemented.
+The Adzuna source adapter, `adapt_adzuna_job()`, translates provider-specific advertisement data into validated `JobPosting` objects. It preserves source identifiers, URLs, raw titles, descriptions, company names and locations where supplied.
+
+`DescriptionCompleteness` distinguishes `COMPLETE`, `EXCERPT` and `UNKNOWN` advertisement descriptions. The Adzuna adapter conservatively marks descriptions as `EXCERPT`; other `JobPosting` instances default to `UNKNOWN`.
+
+`process_job()` preserves source identity, collection timestamps, source URLs and description completeness in `OrchestrationResult`, whether classification succeeds or requires review.
+
+Live Adzuna API retrieval, persistent ingestion history and a comprehensive provenance-aware analytical export remain future work.
 
 **Compatibility:** Introducing timezone-aware collection timestamps required updating existing test fixtures. The full regression suite passed with 190 tests and one expected failure on 22 October 2026.
 
@@ -286,14 +293,14 @@ Run the complete test suite:
 python -m pytest -q
 ```
 
-The latest confirmed full-suite result is **190 passed, 1 xfailed**
-(22 October 2026), following implementation of Lesson 18.
+The latest confirmed full-suite result is **199 passed, 1 xfailed**
+(23 October 2026), following implementation of Lesson 19.
 
-Lesson 18 is being developed on `lesson/18-ingestion-contract`
-and has not yet been committed or integrated into `main`.
+Lesson 19 has been implemented and tested on `lesson/19-source-adapters`
+but has not yet been committed or integrated into `main`.
 
-The latest integrated baseline is `main` at commit `3f91a68`,
-following completion of Lesson 17.
+The latest integrated baseline is `main` at commit `6a94fea`,
+following completion of Lesson 18.
 
 ## Current Limitations
 
