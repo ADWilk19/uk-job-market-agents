@@ -25,6 +25,8 @@ The project separates responsibilities across several components:
 | Component | Responsibility |
 | --------- | -------------- |
 | Pydantic models | Validate structured job advertisement data |
+| Adzuna API client | Retrieve provider data with bounded pagination, validation/error handling and injectable transport |
+| Ingestion pipeline | Fetch, adapt and deduplicate advertisements by `(source, source_id)` |
 | Source adapters | Translate provider-specific advertisements into validated JobPosting objects |
 | Classification rules | Apply deterministic role and working-pattern classifications |
 | LLM classifier | Interpret job advertisements using a language model |
@@ -57,7 +59,7 @@ Validation rejects blank source fields and advertisement content without strippi
 
 Newly collected advertisements can retain their default `UNKNOWN` classifications and `UNVALIDATED` status until the processing workflows evaluate them.
 
-The model preserves source identity and collection timestamps to support provenance and future deduplication.
+The model preserves source identity and collection timestamps to support provenance and deduplication.
 
 The Adzuna source adapter, `adapt_adzuna_job()`, translates provider-specific advertisement data into validated `JobPosting` objects. It preserves source identifiers, URLs, raw titles, descriptions, company names and locations where supplied.
 
@@ -65,7 +67,19 @@ The Adzuna source adapter, `adapt_adzuna_job()`, translates provider-specific ad
 
 `process_job()` preserves source identity, collection timestamps, source URLs and description completeness in `OrchestrationResult`, whether classification succeeds or requires review.
 
-Live Adzuna API retrieval, persistent ingestion history and a comprehensive provenance-aware analytical export remain future work.
+The Adzuna retrieval client and ingestion pipeline are implemented and tested with mocked dependencies. The first live Adzuna API call is planned for Lesson 21. Persistent ingestion history and a comprehensive provenance-aware analytical export remain future work.
+
+### Lesson 20 — Adzuna API client and ingestion pipeline
+
+- Implemented the Adzuna API client with bounded pagination and validation/error handling.
+- Kept HTTP transport injectable so API behaviour can be tested with mocked transport and deterministic responses.
+- Implemented `deduplicate_postings()` using `(source, source_id)`, preserving the first occurrence and first-seen order.
+- Implemented `prepare_adzuna_postings()` to adapt raw advertisements into validated `JobPosting` objects and deduplicate them.
+- Implemented `ingest_adzuna_jobs()` to coordinate fetching, preparation and deduplication, with injectable `fetch_pages` and transport dependencies.
+- Passed the timezone-aware collection timestamp through the pipeline using the keyword-only `collected_at` argument.
+- Verified the pipeline with mocked transport/dependencies; no live Adzuna API calls have been made.
+
+Adzuna credentials must remain local and must not be committed, including in fixtures, documentation or request logs. Use the existing ignored secrets configuration and verify that credentials are excluded before committing.
 
 **Compatibility:** Introducing timezone-aware collection timestamps required updating existing test fixtures. The full regression suite passed with 190 tests and one expected failure on 22 October 2026.
 
@@ -293,14 +307,19 @@ Run the complete test suite:
 python -m pytest -q
 ```
 
-The latest confirmed full-suite result is **199 passed, 1 xfailed**
-(23 October 2026), following implementation of Lesson 19.
+**Latest reported full-suite result:** **220 passed, 2 skipped, 1 xfailed**
+(26 October 2026). The 219-pass result was explicitly confirmed in terminal
+output before the final ingestion test. The subsequent run showed 1 failed,
+219 passed, 2 skipped and 1 xfailed; after the keyword-only argument fix,
+the user reported “all green”. The 220-pass total reflects that report;
+the final numeric output was not pasted and this documentation update did
+not rerun the repository tests.
 
-Lesson 19 has been implemented and tested on `lesson/19-source-adapters`
-but has not yet been committed or integrated into `main`.
-
-The latest integrated baseline is `main` at commit `6a94fea`,
-following completion of Lesson 18.
+Lesson 19 is integrated into `main` at `2236261`, following Lesson 18
+at `6a94fea`. Lesson 20 implementation is complete on the working branch
+`lesson/20-adzuna-api`. API client commit: `180bb76`.
+This commit records the API client milestone; completion of a commit for
+all Lesson 20 work and integration into `main` have not been confirmed.
 
 ## Current Limitations
 
@@ -316,7 +335,7 @@ following completion of Lesson 18.
 
 ## Planned Development
 
-1. Acquire and validate real UK job advertisements.
+1. Lesson 21: make the first controlled live Adzuna API call and validate real UK job advertisements, keeping credentials out of Git.
 2. Develop analysis-ready datasets with appropriate provenance.
 3. Build operational monitoring and job-market dashboards.
 4. Investigate processing retries, persistence and concurrency where justified.

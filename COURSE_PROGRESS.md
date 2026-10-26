@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 22 October 2026
+**Last updated:** 26 October 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -70,7 +70,9 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 15 — Batch Orchestration and Processing Outcomes | Completed | Sequential batch processing, validated outcomes, failure isolation; commit `25acb8a`. |
 | Lesson 16 — Batch Operational Metrics | Completed | Deterministic counts, calculated rates and Pydantic invariants; commit `c9be38a`. |
 | Lesson 17 — Batch Metrics Reporting Contracts | Completed | Deterministic CSV export, seven-column schema and four passing tests; commit `3f91a68`. |
-| Lesson 18 — Job Advertisement Ingestion Contract | Implementation complete; awaiting commit | Stronger source validation, timezone-aware timestamps, URL provenance, raw-text validation and 19 new passing tests; commit `6a94fea`. |
+| Lesson 18 — Job Advertisement Ingestion Contract | Completed; integrated into `main` | Stronger source validation, timezone-aware timestamps, URL provenance, raw-text validation and 19 new passing tests; commit `6a94fea`. |
+| Lesson 19 — Source Adapters and Provenance | Completed; integrated into `main` | Adzuna adapter, description completeness and orchestration provenance; commit `2236261`. |
+| Lesson 20 — Adzuna API Client and Ingestion Pipeline | Implementation complete; full-lesson commit and merge unconfirmed | Bounded pagination, validation/error handling, deduplication, preparation and injectable ingestion; API client commit `180bb76`. |
 
 ### Domain vocabulary
 
@@ -123,27 +125,33 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/16-batch-metrics` | Deterministic batch summaries and operational rates |
 | `lesson/17-batch-reporting` | Deterministic batch-metrics CSV serialization |
 | `lesson/18-ingestion-contract` | Strengthen canonical job-advertisement ingestion validation |
+| `lesson/19-source-adapters` | Source adapters and provenance |
+| `lesson/20-adzuna-api` | Adzuna API client and ingestion pipeline |
 
-**Current working branch:** `lesson/19-source-adapters`
+**Current working branch:** `lesson/20-adzuna-api`
 
-**Stable integration baseline:** `6a94fea`
+**Stable integration baseline:** `main` at `2236261` (Lesson 19).
 
-Lesson 18 was committed, pushed and integrated into `main`.
-
-Lesson 19 has been implemented and tested but has not yet
-been committed or integrated.
+Lesson 18 was committed, pushed and integrated into `main` at `6a94fea`.
+Lesson 19 is integrated into `main` at `2236261`.
+The Lesson 20 API client milestone is committed at `180bb76`.
+The full Lesson 20 implementation is complete and reported green, but
+a commit covering all Lesson 20 work and integration into `main` are unconfirmed.
 
 ### Testing history
 
 Earlier milestones included 24, 27 and 44 passing tests, each with one expected failure.
+Historical full-suite snapshots: Lesson 17 — 171 passed, 1 xfailed;
+Lesson 18 — 190 passed, 1 xfailed; Lesson 19 — 199 passed, 1 xfailed.
+The Lesson 18 `test_job_posting.py` snapshot contained 23 passing tests.
 
-The latest confirmed full-suite result is **190 passed, 1 xfailed**
-(22 October 2026, Lesson 18).
-
-The `test_job_posting.py` module contains 23 passing tests.
-
-The latest integrated baseline on `main` is Lesson 17,
-commit `3f91a68`, which passed 171 tests with one expected failure.
+**Latest reported full-suite result:** **220 passed, 2 skipped, 1 xfailed**
+(26 October 2026). The 219-pass result was explicitly confirmed in terminal
+output before the final ingestion test. The subsequent run showed 1 failed,
+219 passed, 2 skipped and 1 xfailed; after the keyword-only argument fix,
+the user reported “all green”. The 220-pass total reflects that report;
+the final numeric output was not pasted and this documentation update did
+not rerun the repository tests.
 
 ## 5. Recommended next-session verification
 
@@ -157,22 +165,23 @@ python --version
 python -m pytest -q
 ```
 
-Review the latest README, course progress and batch-summary implementation.
-
-Lesson 17 has been implemented and tested on
-`lesson/17-batch-reporting`.
-
-Before starting the next lesson, confirm whether Lesson 16 has been
-committed, pushed and integrated into `main`.
+Review the README, course progress, Adzuna client and ingestion pipeline.
+Confirm the working branch is `lesson/20-adzuna-api`, the integrated
+Lesson 19 baseline is `2236261`, and the API client milestone is `180bb76`.
+Review outstanding Lesson 20 changes, verify credentials are excluded,
+and record the full-lesson commit and integration status when completed.
+Do not assume the API client commit includes the later pipeline work.
 
 **Do not make changes solely to reconcile this document.** Correct this document to match the repository where they differ.
 
 ## 6. Proposed next milestones
 
-**Next development objective:** Real UK Job Advertisement Ingestion.
+**Next development objective:** Lesson 21 — first controlled live Adzuna API call.
 
-Our initial focus should be on selecting suitable data sources, retaining
-provenance, validating incoming records and developing repeatable ingestion tests.
+The client and ingestion pipeline have been tested with mocked dependencies.
+Next, validate a controlled live response through the existing contracts.
+No live Adzuna API calls have been made yet. Credentials must remain local
+and must not be committed, including in fixtures, documentation or logs.
 
 Proposed milestones:
 
@@ -265,7 +274,7 @@ with the existing analytics pipeline.
 - Added parametrized eligibility tests and integration tests.
 - Updated the README to document the new contracts and limitations.
 
-**Validation:** Covered by the latest full-suite result of 139 passed,
+**Validation:** Covered by the historical full-suite result of 139 passed,
 1 xfailed after Lesson 14 integration.
 
 **Next:** Lesson 13 — Company and location contracts (completed below).
@@ -280,7 +289,7 @@ with the existing analytics pipeline.
 - Added model and record-builder regression coverage for this metadata.
 - Established the metadata contract subsequently used by `process_job()`.
 
-**Validation:** Covered by the latest full-suite result of 139 passed,
+**Validation:** Covered by the historical full-suite result of 139 passed,
 1 xfailed after Lesson 14 integration.
 
 **Next:** Lesson 14 — Orchestration (completed below).
@@ -433,7 +442,7 @@ including serialization and reproducible outputs.
 
 **Date:** 21 October 2026
 
-**Status:** Implementation complete; awaiting commit and integration.
+**Status:** Complete; integrated into `main` at `3f91a68`.
 
 **Branch:** `lesson/17-batch-reporting`
 
@@ -467,7 +476,7 @@ including serialization and reproducible outputs.
 - No LLM calls or analytical calculations occur during serialization.
 - Existing batch orchestration and analytics remain unchanged.
 
-**Remaining limitations:**
+**Limitations at Lesson 17 completion (historical snapshot):**
 
 - No reporting history, batch identifiers or reporting periods.
 - No combined, record-level job advertisement export.
@@ -479,7 +488,7 @@ including serialization and reproducible outputs.
 
 **Date:** 22 October 2026
 
-**Status:** Implementation complete; awaiting commit and integration.
+**Status:** Complete; integrated into `main` at `6a94fea`.
 
 **Branch:** `lesson/18-ingestion-contract`
 
@@ -519,7 +528,7 @@ including serialization and reproducible outputs.
 - Ingestion validation remains deterministic and separate from LLM interpretation.
 - Source URLs are optional to preserve compatibility with existing records.
 
-**Remaining limitations:**
+**Limitations at Lesson 18 completion (historical snapshot):**
 
 - No external provider adapter or live job ingestion.
 - No persistent storage, deduplication implementation or ingestion history.
@@ -532,7 +541,7 @@ including serialization and reproducible outputs.
 
 **Date:** 23 October 2026
 
-**Status:** Implementation complete; awaiting commit and integration.
+**Status:** Complete; integrated into `main` at `2236261`.
 
 **Branch:** `lesson/19-source-adapters`
 
@@ -561,13 +570,64 @@ including serialization and reproducible outputs.
 - Provenance is retained in orchestration results without changing existing analytical CSV schemas.
 - Live API retrieval remains separate from source adaptation.
 
-**Remaining limitations:**
+**Limitations at Lesson 19 completion (historical snapshot):**
 
 - No live Adzuna API integration.
 - No persistent ingestion history or deduplication implementation.
 - No comprehensive record-level analytical export containing provenance.
 
 **Next:** Lesson 20 — Adzuna API integration, deterministic response fixtures, controlled requests and error handling.
+
+### Lesson 20 — Adzuna API Client and Ingestion Pipeline
+
+**Date:** 26 October 2026
+
+**Status:** Implementation complete; reported all green. Full-lesson commit and integration into `main` are not confirmed.
+
+**Working branch:** `lesson/20-adzuna-api`
+
+**API client commit:** `180bb76` (client milestone only).
+
+**Integrated baseline:** Lesson 19 on `main` at `2236261`.
+
+**Objective:** Retrieve Adzuna advertisements through a bounded, testable client, then adapt and deduplicate them into canonical postings.
+
+**Implementation and concepts learned:**
+
+- Implemented the Adzuna API client with bounded pagination and validation/error handling.
+- Kept HTTP transport injectable so API behaviour can be tested with mocked transport and deterministic responses.
+- Implemented `deduplicate_postings()` using `(source, source_id)`, preserving the first occurrence and first-seen order.
+- Implemented `prepare_adzuna_postings()` to adapt raw advertisements into validated `JobPosting` objects and deduplicate them.
+- Implemented `ingest_adzuna_jobs()` to coordinate fetching, preparation and deduplication, with injectable `fetch_pages` and transport dependencies.
+- Passed the timezone-aware collection timestamp through the pipeline using the keyword-only `collected_at` argument.
+- Verified the pipeline with mocked transport/dependencies; no live Adzuna API calls have been made.
+
+**Validation:**
+
+**Latest reported full-suite result:** **220 passed, 2 skipped, 1 xfailed**
+(26 October 2026). The 219-pass result was explicitly confirmed in terminal
+output before the final ingestion test. The subsequent run showed 1 failed,
+219 passed, 2 skipped and 1 xfailed; after the keyword-only argument fix,
+the user reported “all green”. The 220-pass total reflects that report;
+the final numeric output was not pasted and this documentation update did
+not rerun the repository tests.
+
+The final ingestion failure was caused by passing `collected_at` positionally
+to `prepare_adzuna_postings()`, which declares it keyword-only. The corrected
+call supplies `collected_at=collected_at`.
+
+**Changed areas:** Adzuna API client, ingestion deduplication and pipeline,
+and corresponding mocked client and ingestion tests. Known ingestion tests
+include `tests/ingestion/test_deduplication.py` and `tests/ingestion/test_pipeline.py`.
+
+**Decisions / limitations:** Fetching, adaptation and deduplication remain separate
+responsibilities. Dependency injection enables deterministic tests without live
+requests. Deduplication is within the supplied postings, not persistent ingestion
+history. The first live Adzuna API call is deferred to Lesson 21; credentials
+must not be committed. Live end-to-end processing and persistent storage remain outstanding.
+
+**Next:** Review and record the remaining Lesson 20 commit/integration status,
+then begin Lesson 21 with the first controlled live Adzuna API call.
 
 ## 10. Open housekeeping items
 
@@ -592,5 +652,13 @@ including serialization and reproducible outputs.
 - [x] Introduce timezone-aware timestamps and optional URL provenance.
 - [x] Update affected test fixtures for the new timestamp contract.
 - [x] Run the Lesson 18 regression suite (190 passed, 1 xfailed).
-- [ ] Commit and push Lesson 18 implementation and documentation.
-- [ ] Integrate Lesson 18 into `main`.
+- [x] Commit and push Lesson 18 implementation and documentation.
+- [x] Integrate Lesson 18 into `main` at `6a94fea`.
+- [x] Complete Lesson 19 and integrate into `main` at `2236261`.
+- [x] Commit the Lesson 20 API client milestone at `180bb76`.
+- [x] Complete bounded pagination, validation/error handling, deduplication and the injectable preparation/ingestion pipeline.
+- [x] Record the reported green Lesson 20 suite: 220 passed, 2 skipped, 1 xfailed (evidence qualification above).
+- [ ] Confirm and record a commit covering all Lesson 20 changes.
+- [ ] Confirm and record Lesson 20 integration into `main`.
+- [ ] Lesson 21: perform the first controlled live Adzuna API call.
+- [ ] Verify credentials remain excluded from Git before each commit.
