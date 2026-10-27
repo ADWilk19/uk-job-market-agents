@@ -8,3 +8,6 @@ data/evaluation_history.json
 
 # macOS Finder metadata
 .DS_Store
+
+# Local API response snapshots
+data/raw/

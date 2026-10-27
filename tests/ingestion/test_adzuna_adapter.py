@@ -122,3 +122,257 @@ def test_adzuna_description_is_marked_as_excerpt():
     )
 
     assert job.description_completeness == DescriptionCompleteness.EXCERPT
+
+
+def test_adzuna_adapter_preserves_coordinates():
+    payload = {
+        "id": "12345",
+        "title": "Data Engineer",
+        "description": "Python and SQL",
+        "latitude": 51.752281,
+        "longitude": -0.448284,
+    }
+
+    job = adapt_adzuna_job(
+        payload,
+        collected_at=datetime(
+            2026, 10, 23, 8, 0, tzinfo=timezone.utc
+        ),
+    )
+
+    assert job.latitude == 51.752281
+    assert job.longitude == -0.448284
+
+
+def test_adzuna_adapter_accepts_missing_coordinates():
+    payload = {
+        "id": "12345",
+        "title": "Data Engineer",
+        "description": "Python and SQL",
+    }
+
+    job = adapt_adzuna_job(
+        payload,
+        collected_at=datetime(
+            2026, 10, 23, 8, 0, tzinfo=timezone.utc
+        ),
+    )
+
+    assert job.latitude is None
+    assert job.longitude is None
+
+
+@pytest.mark.parametrize(
+    "prediction_flag, expected",
+    [
+        ("1", True),
+        ("0", False),
+        (None, None),
+    ],
+)
+def test_adzuna_adapter_parses_salary_prediction(
+    prediction_flag,
+    expected,
+):
+    payload = {
+        "id": "12345",
+        "title": "Data Engineer",
+        "description": "Python and SQL",
+    }
+
+    if prediction_flag is not None:
+        payload["salary_is_predicted"] = prediction_flag
+
+    job = adapt_adzuna_job(
+        payload,
+        collected_at=datetime(
+            2026, 10, 23, 8, 0, tzinfo=timezone.utc
+        ),
+    )
+
+    assert job.source_salary_predicted is expected
+
+
+def test_adzuna_adapter_rejects_invalid_salary_prediction():
+    payload = {
+        "id": "12345",
+        "title": "Data Engineer",
+        "description": "Python and SQL",
+        "salary_is_predicted": "unknown",
+    }
+
+    with pytest.raises(ValueError):
+        adapt_adzuna_job(
+            payload,
+            collected_at=datetime(
+                2026, 10, 23, 8, 0, tzinfo=timezone.utc
+            ),
+        )
+
+
+def test_adzuna_adapter_preserves_valid_source_salaries():
+    payload = {
+        "salary_min":40000,
+        "salary_max":50000,
+        "id": "12345",
+        "title": "Data Engineer",
+        "description": "Python and SQL",
+    }
+
+    job = adapt_adzuna_job(
+            payload,
+            collected_at=datetime(
+                2026, 10, 23, 8, 0, tzinfo=timezone.utc
+            ),
+        )
+
+    assert job.source_salary_min == 40000
+    assert job.source_salary_max == 50000
+    assert job.salary_min is None
+    assert job.salary_max is None
+
+
+def test_adzuna_adapter_rejects_an_inverted_source_range():
+    payload = {
+        "id": "12345",
+        "title": "Data Engineer",
+        "description": "Python and SQL",
+        "salary_min": 60000,
+        "salary_max": 40000,
+    }
+
+    with pytest.raises(ValueError, match="Salary minimum cannot exceed maximum"):
+        adapt_adzuna_job(
+            payload,
+            collected_at=datetime(
+                2026, 10, 23, 8, 0, tzinfo=timezone.utc
+            ),
+        )
+
+
+def test_adzuna_adapter_preserves_published_at():
+    payload = {
+            "salary_min":40000,
+            "salary_max":50000,
+            "id": "12345",
+            "title": "Data Engineer",
+            "description": "Python and SQL",
+            "created": "2026-10-23T08:30:00Z"
+        }
+
+    job = adapt_adzuna_job(
+        payload,
+        collected_at=datetime(
+            2026, 10, 23, 8, 0, tzinfo=timezone.utc
+        ),
+    )
+
+    assert job.published_at == datetime(
+    2026, 10, 23, 8, 30, tzinfo=timezone.utc
+)
+
+    assert job.published_at.tzinfo is not None
+
+    assert job.collected_at == datetime(
+        2026, 10, 23, 8, 0, tzinfo=timezone.utc
+    )
+
+
+def test_adzuna_adapter_preserves_populated_contract_metadata():
+    payload = {
+        "salary_min":40000,
+        "salary_max":50000,
+        "id": "12345",
+        "title": "Data Engineer",
+        "description": "Python and SQL",
+        "created": "2026-10-23T08:30:00Z",
+        "contract_type": "permanent",
+        "contract_time": "full_time",
+        "category": {
+            "display_name": "IT Jobs",
+        }
+    }
+
+    job = adapt_adzuna_job(
+        payload,
+        collected_at=datetime(
+            2026, 10, 23, 8, 0, tzinfo=timezone.utc
+        ),
+    )
+
+    assert job.contract_type_raw == "permanent"
+    assert job.contract_time_raw == "full_time"
+    assert job.source_category_raw == "IT Jobs"
+
+
+def test_adzuna_adapter_accepts_null_contract_metadata():
+    payload = {
+        "salary_min":40000,
+        "salary_max":50000,
+        "id": "12345",
+        "title": "Data Engineer",
+        "description": "Python and SQL",
+        "created": "2026-10-23T08:30:00Z",
+        "contract_type": None,
+        "contract_time": None,
+        "category": {
+            "display_name": None,
+        }
+    }
+
+    job = adapt_adzuna_job(
+        payload,
+        collected_at=datetime(
+            2026, 10, 23, 8, 0, tzinfo=timezone.utc
+        ),
+    )
+
+    assert job.contract_type_raw is None
+    assert job.contract_time_raw is None
+    assert job.source_category_raw is None
+
+def test_adzuna_adapter_normalises_empty_contract_metadata():
+    payload = {
+        "salary_min":40000,
+        "salary_max":50000,
+        "id": "12345",
+        "title": "Data Engineer",
+        "description": "Python and SQL",
+        "created": "2026-10-23T08:30:00Z",
+        "contract_type": "",
+        "contract_time": "",
+        "category": {
+            "display_name": "",
+        }
+    }
+
+    job = adapt_adzuna_job(
+        payload,
+        collected_at=datetime(
+            2026, 10, 23, 8, 0, tzinfo=timezone.utc
+        ),
+    )
+
+    assert job.contract_type_raw is None
+    assert job.contract_time_raw is None
+    assert job.source_category_raw is None
+
+
+def test_adzuna_adapter_rejects_naive_publication_timestamp():
+    payload = {
+        "id": "12345",
+        "title": "Data Engineer",
+        "description": "Python and SQL",
+        "created": "2026-10-23T08:30:00",
+    }
+
+    with pytest.raises(
+        ValueError,
+        match="timezone",
+    ):
+        adapt_adzuna_job(
+            payload,
+            collected_at=datetime(
+                2026, 10, 23, 9, 0, tzinfo=timezone.utc
+            ),
+        )

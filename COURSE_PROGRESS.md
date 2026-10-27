@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 26 October 2026
+**Last updated:** 27 October 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -22,14 +22,14 @@
 | Language | Python 3.10.20 |
 | Environment | Local `.venv` |
 | Project packaging | `pyproject.toml` |
-| Main dependency | `pydantic>=2,<3` |
+| Dependencies | `pydantic>=2,<3`, `openai`, `requests>=2.32,<3` |
 | Tests | `pytest`, with `src` on `pythonpath` and `tests` as test path |
 | Version control | Git; remote repository with `main` and lesson branches |
 | Data | Five hand-labelled (“golden”) job adverts used for early evaluation |
 | Model use | OpenAI API integrated for LLM classification and salary extraction |
 | Secrets | `secrets.json` excluded from Git via `.gitignore` |
 
-Most recently shared `pyproject.toml`:
+Current `pyproject.toml`:
 
 ```toml
 [project]
@@ -38,6 +38,8 @@ version = "0.1.0"
 requires-python = ">=3.10"
 dependencies = [
     "pydantic>=2,<3",
+    "openai",
+    "requests>=2.32,<3"
 ]
 
 [tool.pytest.ini_options]
@@ -72,7 +74,8 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 17 — Batch Metrics Reporting Contracts | Completed | Deterministic CSV export, seven-column schema and four passing tests; commit `3f91a68`. |
 | Lesson 18 — Job Advertisement Ingestion Contract | Completed; integrated into `main` | Stronger source validation, timezone-aware timestamps, URL provenance, raw-text validation and 19 new passing tests; commit `6a94fea`. |
 | Lesson 19 — Source Adapters and Provenance | Completed; integrated into `main` | Adzuna adapter, description completeness and orchestration provenance; commit `2236261`. |
-| Lesson 20 — Adzuna API Client and Ingestion Pipeline | Implementation complete; full-lesson commit and merge unconfirmed | Bounded pagination, validation/error handling, deduplication, preparation and injectable ingestion; API client commit `180bb76`. |
+| Lesson 20 — Adzuna API Client and Ingestion Pipeline | Completed; integrated into local `main` | Client `180bb76`; ingestion and deduplication `a3068b1`. |
+| Lesson 21 — Adzuna Live Smoke and Snapshot Replay | Completed on lesson branch; not merged | Offline default, explicit live mode, provider metadata and offline regression coverage. |
 
 ### Domain vocabulary
 
@@ -128,15 +131,15 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/19-source-adapters` | Source adapters and provenance |
 | `lesson/20-adzuna-api` | Adzuna API client and ingestion pipeline |
 
-**Current working branch:** `lesson/20-adzuna-api`
+**Current working branch:** `lesson/21-adzuna-live-smoke`
 
-**Stable integration baseline:** `main` at `2236261` (Lesson 19).
+**Stable integration baseline:** local `main` at `a3068b1` (Lesson 20).
 
 Lesson 18 was committed, pushed and integrated into `main` at `6a94fea`.
 Lesson 19 is integrated into `main` at `2236261`.
 The Lesson 20 API client milestone is committed at `180bb76`.
-The full Lesson 20 implementation is complete and reported green, but
-a commit covering all Lesson 20 work and integration into `main` are unconfirmed.
+Lesson 20 ingestion and deduplication are committed at `a3068b1`, which is
+also the local `main` tip. Lesson 21 remains on its own branch.
 
 ### Testing history
 
@@ -145,13 +148,11 @@ Historical full-suite snapshots: Lesson 17 — 171 passed, 1 xfailed;
 Lesson 18 — 190 passed, 1 xfailed; Lesson 19 — 199 passed, 1 xfailed.
 The Lesson 18 `test_job_posting.py` snapshot contained 23 passing tests.
 
-**Latest reported full-suite result:** **220 passed, 2 skipped, 1 xfailed**
-(26 October 2026). The 219-pass result was explicitly confirmed in terminal
-output before the final ingestion test. The subsequent run showed 1 failed,
-219 passed, 2 skipped and 1 xfailed; after the keyword-only argument fix,
-the user reported “all green”. The 220-pass total reflects that report;
-the final numeric output was not pasted and this documentation update did
-not rerun the repository tests.
+**Verified Lesson 21 results (27 October 2026):** focused smoke, ingestion and
+model tests **74 passed**; full suite **240 passed, 2 skipped, 1 xfailed**.
+The skips require `OPENAI_API_KEY`; the expected failure is the known
+remote-first / mandatory office-attendance classification rule case.
+Local snapshot replay: **5 retrieved / 5 unique validated postings**.
 
 ## 5. Recommended next-session verification
 
@@ -165,31 +166,16 @@ python --version
 python -m pytest -q
 ```
 
-Review the README, course progress, Adzuna client and ingestion pipeline.
-Confirm the working branch is `lesson/20-adzuna-api`, the integrated
-Lesson 19 baseline is `2236261`, and the API client milestone is `180bb76`.
-Review outstanding Lesson 20 changes, verify credentials are excluded,
-and record the full-lesson commit and integration status when completed.
-Do not assume the API client commit includes the later pipeline work.
-
-**Do not make changes solely to reconcile this document.** Correct this document to match the repository where they differ.
+Review the README's Lesson 21 commands and caveats. Confirm branch and
+commit state with Git, keep credentials and `data/raw/` untracked, and use
+offline replay for repeatable ingestion checks. Merge only when requested.
 
 ## 6. Proposed next milestones
 
-**Next development objective:** Lesson 21 — first controlled live Adzuna API call.
-
-The client and ingestion pipeline have been tested with mocked dependencies.
-Next, validate a controlled live response through the existing contracts.
-No live Adzuna API calls have been made yet. Credentials must remain local
-and must not be committed, including in fixtures, documentation or logs.
-
-Proposed milestones:
-
-1. Acquire and validate real UK job advertisements.
-2. Develop operational and job-market dashboards for the portfolio.
-
-Concurrency, retries and persistent processing history remain
-future considerations.
+**Next development objective:** Connect validated real postings to the processing
+workflow with explicit treatment of excerpts and provider salary metadata.
+Then develop provenance-aware datasets and job-market dashboards. Concurrency,
+retries and persistent ingestion history remain future considerations.
 
 ## 7. Working agreement for future lessons
 
@@ -582,13 +568,13 @@ including serialization and reproducible outputs.
 
 **Date:** 26 October 2026
 
-**Status:** Implementation complete; reported all green. Full-lesson commit and integration into `main` are not confirmed.
+**Status:** Complete; integration into local `main` at `a3068b1` verified on 27 October 2026.
 
 **Working branch:** `lesson/20-adzuna-api`
 
 **API client commit:** `180bb76` (client milestone only).
 
-**Integrated baseline:** Lesson 19 on `main` at `2236261`.
+**Completion commit:** `a3068b1` (ingestion and deduplication), following client commit `180bb76`.
 
 **Objective:** Retrieve Adzuna advertisements through a bounded, testable client, then adapt and deduplicate them into canonical postings.
 
@@ -626,8 +612,33 @@ requests. Deduplication is within the supplied postings, not persistent ingestio
 history. The first live Adzuna API call is deferred to Lesson 21; credentials
 must not be committed. Live end-to-end processing and persistent storage remain outstanding.
 
-**Next:** Review and record the remaining Lesson 20 commit/integration status,
-then begin Lesson 21 with the first controlled live Adzuna API call.
+**Next at that milestone:** Lesson 21 — controlled live smoke and offline replay (completed below).
+
+### Lesson 21 — Adzuna Live Smoke and Snapshot Replay
+
+- **Date:** 27 October 2026.
+- **Status / branch:** Complete on `lesson/21-adzuna-live-smoke`; not merged.
+- **Objective:** Review the completed live/offline smoke work and close the lesson.
+- **Learned:** Snapshot replay separates repeatable ingestion checks from external
+  API availability; a regression test can enforce the absence of network calls.
+- **Implementation:** Offline replay by default, `--live` for a fresh five-result
+  UK search, and `--snapshot` for either input or output. Added publication time,
+  paired coordinates, provider salary bounds/prediction status and raw contract/category
+  metadata. Provider salaries remain distinct from interpreted salary fields.
+- **Files changed:** Smoke script and regression test; Adzuna adapter and model;
+  adapter/model tests; `pyproject.toml`, `.gitignore`, README and this handover.
+- **Validation:** 74 focused tests passed; full suite 240 passed, 2 skipped,
+  1 xfailed. Existing local snapshot replay: 5 retrieved / 5 validated postings.
+  No fresh live request was made during close-out.
+- **Credentials:** Live mode reads `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` from the
+  environment, not automatically from `secrets.json`. Never log credential-bearing
+  URLs. `secrets.json` and `data/raw/` remain ignored and untracked.
+- **Caveats:** Live mode overwrites its snapshot before adaptation. Replay uses
+  the current collection time; original fetch time is not persisted. Invalid
+  adverts can stop the smoke run. Descriptions remain excerpts; provider salary
+  predictions are not verified salaries. See README for commands and details.
+- **Next:** Connect ingestion to processing and define provenance/export policy;
+  the smoke is not yet an end-to-end market analysis.
 
 ## 10. Open housekeeping items
 
@@ -658,7 +669,8 @@ then begin Lesson 21 with the first controlled live Adzuna API call.
 - [x] Commit the Lesson 20 API client milestone at `180bb76`.
 - [x] Complete bounded pagination, validation/error handling, deduplication and the injectable preparation/ingestion pipeline.
 - [x] Record the reported green Lesson 20 suite: 220 passed, 2 skipped, 1 xfailed (evidence qualification above).
-- [ ] Confirm and record a commit covering all Lesson 20 changes.
-- [ ] Confirm and record Lesson 20 integration into `main`.
-- [ ] Lesson 21: perform the first controlled live Adzuna API call.
-- [ ] Verify credentials remain excluded from Git before each commit.
+- [x] Confirm Lesson 20 completion commit `a3068b1`.
+- [x] Confirm local `main` at Lesson 20 commit `a3068b1`.
+- [x] Lesson 21: complete live/offline smoke support and verify existing local snapshot replay.
+- [x] Verify credentials and local raw snapshots are excluded for the Lesson 21 commit.
+- [ ] Continue checking credential/snapshot exclusions before future commits.

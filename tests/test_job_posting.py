@@ -230,3 +230,52 @@ def test_description_completeness_rejects_invalid_value():
     assert len(errors) == 1
     assert errors[0]["loc"] == ("description_completeness",)
     assert errors[0]["type"] == "enum"
+
+
+def test_job_posting_accepts_optional_coordinates():
+    posting = JobPosting(
+        **make_valid_job_data(),
+        latitude=51.752281,
+        longitude=-0.448284,
+    )
+
+    assert posting.latitude == 51.752281
+    assert posting.longitude == -0.448284
+
+
+@pytest.mark.parametrize(
+    "latitude, longitude",
+    [
+        (91.0, 0.0),
+        (-91.0, 0.0),
+        (0.0, 181.0),
+        (0.0, -181.0),
+    ],
+)
+def test_job_posting_rejects_invalid_coordinates(
+    latitude, longitude
+):
+    with pytest.raises(ValidationError):
+        JobPosting(
+            **make_valid_job_data(),
+            latitude=latitude,
+            longitude=longitude,
+        )
+
+
+def test_job_posting_rejects_incomplete_coordinate_pair():
+    with pytest.raises(ValidationError):
+        JobPosting(
+            **make_valid_job_data(),
+            latitude=51.752281,
+        )
+
+
+def make_valid_job_data():
+    return {
+        "source_id": "test-001",
+        "source": "adzuna",
+        "collected_at": datetime.now(timezone.utc),
+        "raw_title": "Data Engineer",
+        "raw_description": "Build and maintain data pipelines.",
+    }

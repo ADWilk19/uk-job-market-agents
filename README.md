@@ -67,7 +67,7 @@ The Adzuna source adapter, `adapt_adzuna_job()`, translates provider-specific ad
 
 `process_job()` preserves source identity, collection timestamps, source URLs and description completeness in `OrchestrationResult`, whether classification succeeds or requires review.
 
-The Adzuna retrieval client and ingestion pipeline are implemented and tested with mocked dependencies. The first live Adzuna API call is planned for Lesson 21. Persistent ingestion history and a comprehensive provenance-aware analytical export remain future work.
+The Adzuna retrieval client and ingestion pipeline support controlled live retrieval and offline snapshot replay (Lesson 21). Persistent ingestion history and a comprehensive provenance-aware analytical export remain future work.
 
 ### Lesson 20 — Adzuna API client and ingestion pipeline
 
@@ -77,11 +77,67 @@ The Adzuna retrieval client and ingestion pipeline are implemented and tested wi
 - Implemented `prepare_adzuna_postings()` to adapt raw advertisements into validated `JobPosting` objects and deduplicate them.
 - Implemented `ingest_adzuna_jobs()` to coordinate fetching, preparation and deduplication, with injectable `fetch_pages` and transport dependencies.
 - Passed the timezone-aware collection timestamp through the pipeline using the keyword-only `collected_at` argument.
-- Verified the pipeline with mocked transport/dependencies; no live Adzuna API calls have been made.
+- Verified the Lesson 20 pipeline with mocked transport/dependencies; live smoke support follows in Lesson 21.
 
 Adzuna credentials must remain local and must not be committed, including in fixtures, documentation or request logs. Use the existing ignored secrets configuration and verify that credentials are excluded before committing.
 
 **Compatibility:** Introducing timezone-aware collection timestamps required updating existing test fixtures. The full regression suite passed with 190 tests and one expected failure on 22 October 2026.
+
+### Lesson 21 — Controlled Adzuna smoke and snapshot replay
+
+From the repository root, with project dependencies installed in `.venv`:
+
+```bash
+# Default: replay the existing local snapshot; no credentials or HTTP calls.
+.venv/bin/python -m scripts.smoke_adzuna
+# Replay a different snapshot.
+.venv/bin/python -m scripts.smoke_adzuna --snapshot data/raw/another_sample.json
+# Fetch one UK page for "data engineer", requesting five results, and save it.
+.venv/bin/python -m scripts.smoke_adzuna --live
+# Choose the destination for a fresh response.
+.venv/bin/python -m scripts.smoke_adzuna --live --snapshot data/raw/another_sample.json
+```
+
+Live mode requires `ADZUNA_APP_ID` and `ADZUNA_APP_KEY` in the environment;
+the script does not load `secrets.json` automatically. Keep values in local
+secret storage and inject them into the environment without recording them
+in shell history. Never commit credentials or log the constructed request URL:
+it contains credentials. The smoke script suppresses request exception details,
+reporting only an HTTP status or a generic request failure.
+
+The default snapshot is `data/raw/adzuna_sample.json`. Both `data/raw/` and
+`secrets.json` are ignored and must remain untracked. A fresh checkout has no
+snapshot: obtain one locally before replay. Custom paths outside `data/raw/`
+are not covered by that ignore rule and must also stay out of commits.
+
+Both modes adapt and deduplicate the response and print retrieved/validated
+counts. The existing local snapshot replay produced **5 retrieved / 5 unique
+validated postings** on 27 October 2026; no fresh live request was made during
+this close-out.
+
+The adapter now preserves publication time, paired coordinates, raw contract
+and category metadata, and provider salary bounds/prediction status. Coordinates
+must be in range and supplied together; publication times must be timezone-aware.
+Provider salary bounds are non-negative and ordered, and remain separate from
+interpreted salary fields. Prediction flags accept only `"0"`, `"1"` or `None`;
+empty optional contract/category text becomes `None`.
+
+**Testing:** `tests/test_smoke_adzuna.py` creates a synthetic temporary snapshot,
+removes both credentials and replaces HTTP transport with a function that fails
+if called. This guards the offline default without depending on a live API or
+committed provider data. Run focused tests before the full suite:
+
+```bash
+.venv/bin/python -m pytest -q tests/test_smoke_adzuna.py tests/ingestion tests/test_job_posting.py
+.venv/bin/python -m pytest -q -ra
+```
+
+**Caveats:** `--live` overwrites the chosen snapshot before adapting its adverts.
+Replay assigns the current UTC time to `collected_at`, not the original fetch
+time; the snapshot does not store that timestamp. Malformed JSON or an invalid
+advert can stop the smoke run. Descriptions remain excerpts and predicted
+salaries are provider metadata, not verified advertised salaries. This small
+sample validates ingestion, not market coverage or end-to-end LLM processing.
 
 ## Salary Validation and Analytical Records
 
@@ -307,19 +363,14 @@ Run the complete test suite:
 python -m pytest -q
 ```
 
-**Latest reported full-suite result:** **220 passed, 2 skipped, 1 xfailed**
-(26 October 2026). The 219-pass result was explicitly confirmed in terminal
-output before the final ingestion test. The subsequent run showed 1 failed,
-219 passed, 2 skipped and 1 xfailed; after the keyword-only argument fix,
-the user reported “all green”. The 220-pass total reflects that report;
-the final numeric output was not pasted and this documentation update did
-not rerun the repository tests.
+**Verified full-suite result:** **240 passed, 2 skipped, 1 xfailed**
+(27 October 2026). The two OpenAI integration tests skip without
+`OPENAI_API_KEY`; the expected failure is the known remote-first versus
+mandatory office-attendance rule case. Focused smoke, ingestion and
+`JobPosting` tests: **74 passed**.
 
-Lesson 19 is integrated into `main` at `2236261`, following Lesson 18
-at `6a94fea`. Lesson 20 implementation is complete on the working branch
-`lesson/20-adzuna-api`. API client commit: `180bb76`.
-This commit records the API client milestone; completion of a commit for
-all Lesson 20 work and integration into `main` have not been confirmed.
+Lesson 20 is integrated into local `main` at `a3068b1`. Lesson 21 is
+completed on `lesson/21-adzuna-live-smoke`, without merging into `main`.
 
 ## Current Limitations
 
@@ -335,7 +386,7 @@ all Lesson 20 work and integration into `main` have not been confirmed.
 
 ## Planned Development
 
-1. Lesson 21: make the first controlled live Adzuna API call and validate real UK job advertisements, keeping credentials out of Git.
+1. Connect validated real postings to the processing workflow with explicit excerpt and salary policies.
 2. Develop analysis-ready datasets with appropriate provenance.
 3. Build operational monitoring and job-market dashboards.
 4. Investigate processing retries, persistence and concurrency where justified.
