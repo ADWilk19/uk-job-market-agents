@@ -1,5 +1,4 @@
 import pytest
-import pytest
 from pydantic import ValidationError
 
 from uk_job_market_agents.agents.batch_orchestration import (

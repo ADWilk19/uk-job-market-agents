@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 27 October 2026
+**Last updated:** 28 October 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -75,7 +75,8 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 18 — Job Advertisement Ingestion Contract | Completed; integrated into `main` | Stronger source validation, timezone-aware timestamps, URL provenance, raw-text validation and 19 new passing tests; commit `6a94fea`. |
 | Lesson 19 — Source Adapters and Provenance | Completed; integrated into `main` | Adzuna adapter, description completeness and orchestration provenance; commit `2236261`. |
 | Lesson 20 — Adzuna API Client and Ingestion Pipeline | Completed; integrated into local `main` | Client `180bb76`; ingestion and deduplication `a3068b1`. |
-| Lesson 21 — Adzuna Live Smoke and Snapshot Replay | Completed on lesson branch; not merged | Offline default, explicit live mode, provider metadata and offline regression coverage. |
+| Lesson 21 — Adzuna Live Smoke and Snapshot Replay | Completed; committed | Offline default, explicit live mode, provider metadata and offline regression coverage; commit `28fd5dc`. |
+| Lesson 22 — Offline Batch Integration | Implemented and tested; not yet committed | Injectable `run_postings_batch()` returns outcomes and a batch summary; four integration tests. |
 
 ### Domain vocabulary
 
@@ -130,16 +131,20 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/18-ingestion-contract` | Strengthen canonical job-advertisement ingestion validation |
 | `lesson/19-source-adapters` | Source adapters and provenance |
 | `lesson/20-adzuna-api` | Adzuna API client and ingestion pipeline |
+| `lesson/21-adzuna-live-smoke` | Controlled smoke and offline snapshot replay; commit `28fd5dc` |
+| `lesson/22-offline-batch-integration` | Prepared-posting batch integration; not yet committed |
 
-**Current working branch:** `lesson/21-adzuna-live-smoke`
+**Current working branch:** `lesson/22-offline-batch-integration`
 
-**Stable integration baseline:** local `main` at `a3068b1` (Lesson 20).
+**Last verified stable integration baseline:** local `main` at `a3068b1` (Lesson 20).
 
 Lesson 18 was committed, pushed and integrated into `main` at `6a94fea`.
 Lesson 19 is integrated into `main` at `2236261`.
 The Lesson 20 API client milestone is committed at `180bb76`.
 Lesson 20 ingestion and deduplication are committed at `a3068b1`, which is
-also the local `main` tip. Lesson 21 remains on its own branch.
+the last verified local `main` tip. Lesson 21 is committed at `28fd5dc`.
+Lesson 22 is implemented and tested but not yet committed; no later merge or push
+is asserted by this handover.
 
 ### Testing history
 
@@ -154,6 +159,12 @@ The skips require `OPENAI_API_KEY`; the expected failure is the known
 remote-first / mandatory office-attendance classification rule case.
 Local snapshot replay: **5 retrieved / 5 unique validated postings**.
 
+**Latest confirmed Lesson 22 result (28 October 2026):** **246 passed,
+1 xfailed in 4.71s**; focused integration tests **4 passed**.
+`git diff --check` was clean. The latest output reports no skips; these results
+do not establish live end-to-end LLM validation. This documentation update uses
+the supplied results and did not rerun the repository suite.
+
 ## 5. Recommended next-session verification
 
 Run from the repository root:
@@ -166,16 +177,23 @@ python --version
 python -m pytest -q
 ```
 
-Review the README's Lesson 21 commands and caveats. Confirm branch and
+Review the README's Lesson 21 commands, caveats and Lesson 22 integration contract.
+Review the uncommitted Lesson 22 changes before a separately requested commit. Confirm branch and
 commit state with Git, keep credentials and `data/raw/` untracked, and use
 offline replay for repeatable ingestion checks. Merge only when requested.
 
 ## 6. Proposed next milestones
 
-**Next development objective:** Connect validated real postings to the processing
-workflow with explicit treatment of excerpts and provider salary metadata.
-Then develop provenance-aware datasets and job-market dashboards. Concurrency,
-retries and persistent ingestion history remain future considerations.
+**Next development objective:** Close out the tested, uncommitted Lesson 22
+changes, then define explicit treatment of excerpts and provider salary metadata
+for controlled processing. The prepared-posting integration helper now exists;
+an executable workflow connecting retrieval, processing, summaries and exports
+still needs implementation and verification. A live end-to-end LLM run has not
+been established by the offline tests.
+
+Then develop a provenance-aware record-level export combining classifications,
+salary assessments and source metadata, followed by job-market dashboards.
+Concurrency, retries and persistent ingestion history remain future considerations.
 
 ## 7. Working agreement for future lessons
 
@@ -617,7 +635,8 @@ must not be committed. Live end-to-end processing and persistent storage remain 
 ### Lesson 21 — Adzuna Live Smoke and Snapshot Replay
 
 - **Date:** 27 October 2026.
-- **Status / branch:** Complete on `lesson/21-adzuna-live-smoke`; not merged.
+- **Status / branch:** Complete on `lesson/21-adzuna-live-smoke`; commit `28fd5dc`.
+  Historical close-out was not merged; no subsequent merge is confirmed here.
 - **Objective:** Review the completed live/offline smoke work and close the lesson.
 - **Learned:** Snapshot replay separates repeatable ingestion checks from external
   API availability; a regression test can enforce the absence of network calls.
@@ -639,6 +658,48 @@ must not be committed. Live end-to-end processing and persistent storage remain 
   predictions are not verified salaries. See README for commands and details.
 - **Next:** Connect ingestion to processing and define provenance/export policy;
   the smoke is not yet an end-to-end market analysis.
+
+### Lesson 22 — Offline Batch Integration
+
+**Date:** 28 October 2026
+
+**Status:** Implemented and tested; not yet committed.
+
+**Branch:** `lesson/22-offline-batch-integration`.
+
+**Previous lesson commit:** Lesson 21 — `28fd5dc`.
+
+**Objective:** Connect prepared `JobPosting` objects to the existing batch
+processor and deterministic summary through a small, testable integration boundary.
+
+**Implementation and learning:**
+
+- Added `run_postings_batch(postings, *, processor=process_jobs)` in
+  `src/uk_job_market_agents/ingestion/batch_integration.py`.
+- Returns processing outcomes together with `summarize_batch(outcomes)`.
+- Reuses `process_jobs()` by default, which delegates to `process_job()`;
+  processor injection enables offline integration tests.
+- Keeps adaptation and deduplication upstream in `prepare_adzuna_postings()`.
+- Added `tests/ingestion/test_batch_integration.py` with four tests covering
+  populated batches, empty batches, mixed outcomes and synthetic Adzuna payloads
+  through preparation, including provenance and deduplication.
+- Removed a duplicate import in `tests/analytics/test_batch_summary.py`.
+
+**Validation:** Four focused integration tests passed; full suite **246 passed,
+1 xfailed in 4.71s**. `git diff --check` was clean. These are confirmed session
+results, not tests rerun as part of this documentation update.
+
+**Architecture and limitations:** The helper joins prepared postings to outcomes
+and a summary. The existing batch metrics CSV writer is a separate caller step.
+The integration tests use an injected processor and do not verify live end-to-end
+LLM processing. No executable CLI connects every component. Batch processing
+remains sequential without retries or persistent history. Adzuna excerpts and
+provider salary metadata retain their existing caveats; comprehensive
+provenance-aware record-level export remains future work.
+
+**Next:** Review and commit Lesson 22 when requested, then define controlled
+processing policies and an executable workflow before extending provenance-aware
+exports. No commit was made for this documentation update.
 
 ## 10. Open housekeeping items
 
@@ -674,3 +735,10 @@ must not be committed. Live end-to-end processing and persistent storage remain 
 - [x] Lesson 21: complete live/offline smoke support and verify existing local snapshot replay.
 - [x] Verify credentials and local raw snapshots are excluded for the Lesson 21 commit.
 - [ ] Continue checking credential/snapshot exclusions before future commits.
+- [x] Record Lesson 21 commit `28fd5dc`.
+- [x] Implement Lesson 22 prepared-posting batch integration and four passing tests.
+- [x] Remove the duplicate batch-summary test import.
+- [x] Confirm Lesson 22 full suite: 246 passed, 1 xfailed in 4.71s; clean `git diff --check`.
+- [ ] Review and commit Lesson 22 on `lesson/22-offline-batch-integration` when requested.
+- [ ] Define excerpt/provider salary policies and verify an executable processing/export workflow.
+- [ ] Implement comprehensive provenance-aware record-level export.

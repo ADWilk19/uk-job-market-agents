@@ -36,12 +36,42 @@ The project separates responsibilities across several components:
 | Adjudication | Help resolve disagreements between classification methods |
 | Workflow | Coordinate classification results and review decisions |
 | Orchestration | Coordinate single-job classification, salary verification and analytical record construction |
+| Offline batch integration | Pass prepared postings to an injectable processor and return outcomes with a batch summary |
 | Batch orchestration | Process advertisements sequentially, preserve outcomes and isolate failures |
 | Batch metrics | Calculate validated processing counts and derived rates |
 | Salary policy | Determine eligibility for annual salary analysis |
 | Analytics | Construct analytical records and calculate summary metrics |
 | CSV export | Serialize analytical results for downstream consumption |
 | Batch reporting | Serialize validated batch metrics into deterministic CSV output |
+
+```mermaid
+flowchart TD
+    API["Adzuna API"] --> Adapter["Adzuna adapter"]
+    Snapshot["Offline snapshot"] --> Adapter
+    Adapter --> Posting["Validated JobPosting"]
+    Posting --> Dedup["Deduplicate by source and source_id"]
+    Dedup --> Batch["run_postings_batch"]
+    Batch --> Jobs["process_jobs (default processor)"]
+    Jobs --> Job["process_job"]
+    Job --> Classify["Rules + LLM classification"]
+    Classify --> Adjudicate["Adjudication / workflow resolution"]
+    Adjudicate -->|"Review required"| Review["Classification review; skip salary extraction"]
+    Adjudicate -->|"Approved"| Salary["Salary extraction + verification"]
+    Review --> Outcomes["BatchProcessingOutcome list"]
+    Salary --> Outcomes
+    Job -->|"Processing exception caught by process_jobs"| Failed["FAILED outcome"]
+    Failed --> Outcomes
+    Outcomes --> Summary["summarize_batch / BatchSummary"]
+    Summary --> CSV["write_batch_summary_csv / batch metrics CSV"]
+    Outcomes -.-> Future["FUTURE: provenance-aware record-level export"]
+    style Future stroke-dasharray: 5 5
+```
+
+The diagram shows component relationships, not an executable end-to-end CLI.
+Lesson 22 connects prepared postings to processing through `run_postings_batch()`;
+it returns outcomes and `summarize_batch(outcomes)`. CSV serialization remains a
+separate caller step. The dashed export is future work. Offline integration tests
+use an injected processor; they do not demonstrate a live end-to-end LLM workflow.
 
 ## Job Advertisement Ingestion Contract
 
@@ -67,7 +97,7 @@ The Adzuna source adapter, `adapt_adzuna_job()`, translates provider-specific ad
 
 `process_job()` preserves source identity, collection timestamps, source URLs and description completeness in `OrchestrationResult`, whether classification succeeds or requires review.
 
-The Adzuna retrieval client and ingestion pipeline support controlled live retrieval and offline snapshot replay (Lesson 21). Persistent ingestion history and a comprehensive provenance-aware analytical export remain future work.
+The Adzuna retrieval client and ingestion pipeline support controlled live retrieval and offline snapshot replay (Lesson 21). Lesson 22 adds an offline batch integration helper for prepared postings. Persistent ingestion history and a comprehensive provenance-aware analytical export remain future work.
 
 ### Lesson 20 — Adzuna API client and ingestion pipeline
 
@@ -139,6 +169,26 @@ advert can stop the smoke run. Descriptions remain excerpts and predicted
 salaries are provider metadata, not verified advertised salaries. This small
 sample validates ingestion, not market coverage or end-to-end LLM processing.
 
+### Lesson 22 — Offline batch integration
+
+`src/uk_job_market_agents/ingestion/batch_integration.py` adds
+`run_postings_batch(postings, *, processor=process_jobs)`, returning processing
+outcomes together with `summarize_batch(outcomes)`. The default processor reuses
+the existing batch and single-job orchestration; tests can inject a processor
+without invoking live LLM services. Adaptation and deduplication remain upstream
+responsibilities, handled for Adzuna payloads by `prepare_adzuna_postings()`.
+
+Four tests in `tests/ingestion/test_batch_integration.py` cover populated and empty
+batches, mixed outcomes, and synthetic Adzuna payloads prepared through
+`prepare_adzuna_postings()`, including provenance and deduplication. This verifies
+the offline integration boundary, not live end-to-end LLM behaviour. The duplicate
+import in `tests/analytics/test_batch_summary.py` was also removed.
+
+**State (28 October 2026):** Implemented and tested on
+`lesson/22-offline-batch-integration`; not yet committed. Lesson 21 commit:
+`28fd5dc`. Batch metrics CSV export is available separately; no executable CLI
+currently connects retrieval, processing and every export component.
+
 ## Salary Validation and Analytical Records
 
 Salary processing separates data validation, analytical eligibility,
@@ -202,7 +252,8 @@ removing their associated advertisements from job counts.
 
 The single-job orchestrator `process_job()` applies the salary integration
 adapter after salary extraction and verification. This path is covered by
-orchestration tests; real-world ingestion is not yet connected.
+orchestration tests. Lesson 22 connects prepared postings to batch processing
+through an injectable helper; live end-to-end LLM processing remains unverified.
 
 ## Orchestration
 
@@ -363,14 +414,20 @@ Run the complete test suite:
 python -m pytest -q
 ```
 
-**Verified full-suite result:** **240 passed, 2 skipped, 1 xfailed**
-(27 October 2026). The two OpenAI integration tests skip without
-`OPENAI_API_KEY`; the expected failure is the known remote-first versus
-mandatory office-attendance rule case. Focused smoke, ingestion and
-`JobPosting` tests: **74 passed**.
+**Latest confirmed full-suite result:** **246 passed, 1 xfailed in 4.71s**
+(28 October 2026). Focused Lesson 22 integration tests: **4 passed**.
+`git diff --check` was clean. These are the supplied repository results; this
+documentation update did not rerun the tests. The known expected failure concerns
+the remote-first versus mandatory office-attendance rule case. The latest output
+reports no skips; it does not establish a live end-to-end LLM run.
 
-Lesson 20 is integrated into local `main` at `a3068b1`. Lesson 21 is
-completed on `lesson/21-adzuna-live-smoke`, without merging into `main`.
+**Historical Lesson 21 result:** 240 passed, 2 skipped, 1 xfailed
+(27 October 2026), with 74 focused smoke, ingestion and `JobPosting` tests passing.
+The two OpenAI integration tests skipped without `OPENAI_API_KEY` in that run.
+
+The current branch is `lesson/22-offline-batch-integration`. Lesson 21 is committed
+at `28fd5dc`; Lesson 22 is not yet committed. The last verified local `main`
+baseline is Lesson 20 at `a3068b1`; no later merge or push is asserted here.
 
 ## Current Limitations
 
@@ -378,15 +435,19 @@ completed on `lesson/21-adzuna-live-smoke`, without merging into `main`.
   persistent processing history.
 - The project currently relies on a small collection of example
   job advertisements.
-- The end-to-end pipeline has not yet been connected to a source
-  of real UK job advertisements.
+- Adzuna retrieval, snapshot replay and prepared-posting batch integration exist,
+  but a live end-to-end LLM workflow has not been verified. No executable CLI
+  connects all retrieval, processing, summary and export components.
+- Adzuna descriptions remain excerpts, and provider salary metadata is not
+  verified salary evidence. Replay does not preserve the original fetch time.
 - Analytical records do not currently preserve original salary
   quotations.
 - A comprehensive record-level export combining job classifications, salary assessments, and provenance has not yet been implemented.
 
 ## Planned Development
 
-1. Connect validated real postings to the processing workflow with explicit excerpt and salary policies.
-2. Develop analysis-ready datasets with appropriate provenance.
-3. Build operational monitoring and job-market dashboards.
-4. Investigate processing retries, persistence and concurrency where justified.
+1. Close out Lesson 22 with a reviewed commit, then define explicit excerpt and provider salary policies for controlled processing.
+2. Add and verify an executable workflow connecting ingestion, processing, summaries and exports.
+3. Develop analysis-ready datasets with appropriate provenance.
+4. Build operational monitoring and job-market dashboards.
+5. Investigate processing retries, persistence and concurrency where justified.
