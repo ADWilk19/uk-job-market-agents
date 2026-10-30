@@ -42,6 +42,7 @@ The project separates responsibilities across several components:
 | Salary policy | Determine eligibility for annual salary analysis |
 | Analytics | Construct analytical records and calculate summary metrics |
 | CSV export | Serialize analytical results for downstream consumption |
+| Job export | Join ordered postings/outcomes into provenance-aware rows, then serialize deterministically |
 | Batch reporting | Serialize validated batch metrics into deterministic CSV output |
 
 ```mermaid
@@ -63,14 +64,15 @@ flowchart TD
     Failed --> Outcomes
     Outcomes --> Summary["summarize_batch / BatchSummary"]
     Summary --> CSV["write_batch_summary_csv / batch metrics CSV"]
-    Outcomes -.-> Future["FUTURE: provenance-aware record-level export"]
-    style Future stroke-dasharray: 5 5
+    Dedup --> Export["build_job_export_rows / JobExportRow"]
+    Outcomes --> Export
+    Export --> JobCSV["write_job_export_csv / job CSV"]
 ```
 
 The diagram shows component relationships, not an executable end-to-end CLI.
 Lesson 22 connects prepared postings to processing through `run_postings_batch()`;
 it returns outcomes and `summarize_batch(outcomes)`. CSV serialization remains a
-separate caller step. The dashed export is future work. Offline integration tests
+separate caller step. Lesson 23 adds the record-level export boundary. Offline integration tests
 use an injected processor; they do not demonstrate a live end-to-end LLM workflow.
 
 ## Job Advertisement Ingestion Contract
@@ -97,7 +99,7 @@ The Adzuna source adapter, `adapt_adzuna_job()`, translates provider-specific ad
 
 `process_job()` preserves source identity, collection timestamps, source URLs and description completeness in `OrchestrationResult`, whether classification succeeds or requires review.
 
-The Adzuna retrieval client and ingestion pipeline support controlled live retrieval and offline snapshot replay (Lesson 21). Lesson 22 adds an offline batch integration helper for prepared postings. Persistent ingestion history and a comprehensive provenance-aware analytical export remain future work.
+The Adzuna retrieval client and ingestion pipeline support controlled live retrieval and offline snapshot replay (Lesson 21). Lesson 22 adds an offline batch integration helper for prepared postings. Lesson 23 adds a provenance-aware analytical export; persistent ingestion history remains future work.
 
 ### Lesson 20 — Adzuna API client and ingestion pipeline
 
@@ -184,10 +186,97 @@ batches, mixed outcomes, and synthetic Adzuna payloads prepared through
 the offline integration boundary, not live end-to-end LLM behaviour. The duplicate
 import in `tests/analytics/test_batch_summary.py` was also removed.
 
-**State (28 October 2026):** Implemented and tested on
-`lesson/22-offline-batch-integration`; not yet committed. Lesson 21 commit:
+**State (verified 30 October 2026):** Committed at `9a672ee` on
+`lesson/22-offline-batch-integration`. Lesson 21 commit:
 `28fd5dc`. Batch metrics CSV export is available separately; no executable CLI
 currently connects retrieval, processing and every export component.
+
+## Lesson 23 — Provenance-aware job export
+
+Agents/LLMs interpret advertisements; deterministic Python/Pydantic validates,
+selects and serializes values. `build_job_export_rows(postings, outcomes)` in
+`analytics/job_export.py` pairs the two ordered lists with strict length checking
+and requires each `posting.source_id == outcome.job_id`. It preserves input order,
+including failed and review-required advertisements. It neither sorts nor deduplicates.
+
+Provenance and provider metadata always come from the original posting, even when
+processing failed: source, source ID, timezone-aware collection time, description
+completeness, company name and provider salary fields.
+
+| Processing status | Exported analytical fields |
+| --- | --- |
+| `processed` | Role, work pattern and salary bounds from the analytical record, when present |
+| `review_required` | Empty role, work pattern and analytical salary fields; classification review reason retained |
+| `failed` | Empty analytical fields and review reason; source metadata retained |
+
+Processing status describes classification/processing, not salary verification.
+`salary_min` and `salary_max` copy the upstream analytical record. In the normal
+`process_job()` path, only verified, complete GBP annual ranges qualify; daily,
+hourly, incomplete, undisclosed or unverified salaries leave these fields empty.
+The exporter does not reverify salary evidence. `source_salary_min/max` remain
+provider values; `source_salary_predicted` distinguishes true, false and unknown.
+Even a false prediction flag does not establish verified advertised salary.
+Provider values never fill missing analytical salary bounds.
+
+### CSV contract and offline usage
+
+`write_job_export_csv(rows, output_path: Path)` in `analytics/job_export_csv.py`
+writes this fixed 14-column schema:
+
+```csv
+source,source_id,collected_at,description_completeness,processing_status,role_family,work_pattern,salary_min,salary_max,source_salary_min,source_salary_max,source_salary_predicted,classification_review_reason,company_name
+```
+
+Identical ordered rows produce identical bytes in the same runtime: UTF-8 without
+a BOM, LF record terminators and a final newline. Empty input writes the header.
+Pydantic JSON serialization supplies enum values and ISO timestamps (UTC uses
+`Z`; other timezone offsets are preserved). Missing values become empty fields;
+booleans become `True`/`False`. Numeric values use ordinary Python CSV conversion
+(no fixed decimal precision). Standard CSV quoting preserves commas, quotes and
+embedded newlines; embedded source text is not normalized.
+
+This complete example uses a synthetic failure and makes no API or LLM calls:
+
+```python
+from datetime import datetime, timezone
+from pathlib import Path
+
+from uk_job_market_agents.agents.batch_orchestration import (
+    BatchProcessingOutcome, ProcessingStatus,
+)
+from uk_job_market_agents.analytics.job_export import build_job_export_rows
+from uk_job_market_agents.analytics.job_export_csv import write_job_export_csv
+from uk_job_market_agents.models.job_posting import JobPosting
+
+postings = [JobPosting(
+    source="fixture", source_id="001",
+    raw_title="Data Engineer", raw_description="Synthetic offline example",
+    collected_at=datetime(2026, 10, 30, tzinfo=timezone.utc),
+)]
+outcomes = [BatchProcessingOutcome(
+    job_id="001", status=ProcessingStatus.FAILED,
+    error="Synthetic failure for export demonstration",
+)]
+rows = build_job_export_rows(postings, outcomes)
+write_job_export_csv(rows, Path("job_export.csv"))
+```
+
+For existing batch results, pass the same prepared postings and their returned
+outcomes. The default batch processor invokes LLM workflows; use precomputed
+outcomes or an injected offline processor when working offline.
+
+**Limitations:** Pairing is positional and checks only source ID: outcomes lack a
+required source-qualified identity, so cross-provider ID collisions cannot be
+fully detected. Use outcomes from the same ordered batch. `JobExportRow` is a
+typed serialization model, not an independent workflow/salary verifier; manually
+constructed records can bypass upstream policies. A processed outcome with no
+analytical record exports empty analytical fields. Excerpts remain explicitly
+labelled and do not imply complete advertisement evidence. This selected schema
+omits source URL, raw text, title/location, salary evidence/review status and
+failure details; retain original postings/outcomes and the separate salary audit
+export when those are needed. The writer overwrites an existing file, requires
+an existing parent directory and does not write atomically. No CLI, persistence
+or new live processing is introduced.
 
 ## Salary Validation and Analytical Records
 
@@ -414,20 +503,19 @@ Run the complete test suite:
 python -m pytest -q
 ```
 
-**Latest confirmed full-suite result:** **246 passed, 1 xfailed in 4.71s**
-(28 October 2026). Focused Lesson 22 integration tests: **4 passed**.
-`git diff --check` was clean. These are the supplied repository results; this
-documentation update did not rerun the tests. The known expected failure concerns
-the remote-first versus mandatory office-attendance rule case. The latest output
-reports no skips; it does not establish a live end-to-end LLM run.
+**Lesson 23 validation (30 October 2026):** **15 focused tests passed in 0.40s**;
+full suite **259 passed, 2 skipped, 1 xfailed in 0.43s**. Credentials were removed
+from the test environment; the two live OpenAI integration tests skipped.
+The expected failure remains the remote-first / mandatory office-attendance rule.
+No live API or LLM calls were made.
 
-**Historical Lesson 21 result:** 240 passed, 2 skipped, 1 xfailed
-(27 October 2026), with 74 focused smoke, ingestion and `JobPosting` tests passing.
-The two OpenAI integration tests skipped without `OPENAI_API_KEY` in that run.
+```bash
+env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q tests/analytics/test_job_export.py tests/analytics/test_job_export_csv.py
+env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
+```
 
-The current branch is `lesson/22-offline-batch-integration`. Lesson 21 is committed
-at `28fd5dc`; Lesson 22 is not yet committed. The last verified local `main`
-baseline is Lesson 20 at `a3068b1`; no later merge or push is asserted here.
+Current branch: `lesson/23-provenance-aware-export`; Lesson 22 baseline:
+`9a672ee`. Lesson 23 changes remain unstaged and uncommitted pending review.
 
 ## Current Limitations
 
@@ -442,11 +530,12 @@ baseline is Lesson 20 at `a3068b1`; no later merge or push is asserted here.
   verified salary evidence. Replay does not preserve the original fetch time.
 - Analytical records do not currently preserve original salary
   quotations.
-- A comprehensive record-level export combining job classifications, salary assessments, and provenance has not yet been implemented.
+- Lesson 23 exports selected provenance and analytical fields; detailed salary
+  assessments and failure diagnostics remain separate.
 
 ## Planned Development
 
-1. Close out Lesson 22 with a reviewed commit, then define explicit excerpt and provider salary policies for controlled processing.
+1. Approve Lesson 23 review before any staging or commit; then define explicit excerpt and provider salary policies for controlled processing.
 2. Add and verify an executable workflow connecting ingestion, processing, summaries and exports.
 3. Develop analysis-ready datasets with appropriate provenance.
 4. Build operational monitoring and job-market dashboards.

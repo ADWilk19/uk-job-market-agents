@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 28 October 2026
+**Last updated:** 30 October 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -76,7 +76,8 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 19 — Source Adapters and Provenance | Completed; integrated into `main` | Adzuna adapter, description completeness and orchestration provenance; commit `2236261`. |
 | Lesson 20 — Adzuna API Client and Ingestion Pipeline | Completed; integrated into local `main` | Client `180bb76`; ingestion and deduplication `a3068b1`. |
 | Lesson 21 — Adzuna Live Smoke and Snapshot Replay | Completed; committed | Offline default, explicit live mode, provider metadata and offline regression coverage; commit `28fd5dc`. |
-| Lesson 22 — Offline Batch Integration | Implemented and tested; not yet committed | Injectable `run_postings_batch()` returns outcomes and a batch summary; four integration tests. |
+| Lesson 22 — Offline Batch Integration | Committed at `9a672ee` | Injectable `run_postings_batch()` returns outcomes and a batch summary; four integration tests. |
+| Lesson 23 — Provenance-aware export | Reviewed and tested; awaiting approval | Typed rows, stable CSV, 15 focused tests; no staging or commit. |
 
 ### Domain vocabulary
 
@@ -132,19 +133,19 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/19-source-adapters` | Source adapters and provenance |
 | `lesson/20-adzuna-api` | Adzuna API client and ingestion pipeline |
 | `lesson/21-adzuna-live-smoke` | Controlled smoke and offline snapshot replay; commit `28fd5dc` |
-| `lesson/22-offline-batch-integration` | Prepared-posting batch integration; not yet committed |
+| `lesson/22-offline-batch-integration` | Prepared-posting batch integration; commit `9a672ee` |
 
-**Current working branch:** `lesson/22-offline-batch-integration`
+**Current working branch:** `lesson/23-provenance-aware-export`
 
-**Last verified stable integration baseline:** local `main` at `a3068b1` (Lesson 20).
+**Last verified stable integration baseline:** local `main` at `9a672ee` (Lesson 22), verified 30 October 2026.
 
 Lesson 18 was committed, pushed and integrated into `main` at `6a94fea`.
 Lesson 19 is integrated into `main` at `2236261`.
 The Lesson 20 API client milestone is committed at `180bb76`.
-Lesson 20 ingestion and deduplication are committed at `a3068b1`, which is
-the last verified local `main` tip. Lesson 21 is committed at `28fd5dc`.
-Lesson 22 is implemented and tested but not yet committed; no later merge or push
-is asserted by this handover.
+Lesson 20 ingestion and deduplication are committed at `a3068b1`, the historical
+Lesson 20 baseline. Lesson 21 is committed at `28fd5dc`.
+Lesson 22 is committed at `9a672ee`, the current branch baseline. Lesson 23
+remains unstaged and uncommitted; no new merge or push is asserted here.
 
 ### Testing history
 
@@ -162,8 +163,11 @@ Local snapshot replay: **5 retrieved / 5 unique validated postings**.
 **Latest confirmed Lesson 22 result (28 October 2026):** **246 passed,
 1 xfailed in 4.71s**; focused integration tests **4 passed**.
 `git diff --check` was clean. The latest output reports no skips; these results
-do not establish live end-to-end LLM validation. This documentation update uses
-the supplied results and did not rerun the repository suite.
+do not establish live end-to-end LLM validation. Those historical results were supplied at Lesson 22 close-out. The current
+Lesson 23 review reran the suite as recorded below.
+
+**Latest Lesson 23 validation (30 October 2026):** 15 focused passed; full suite
+259 passed, 2 skipped, 1 xfailed. See the Lesson 23 entry for offline test conditions.
 
 ## 5. Recommended next-session verification
 
@@ -178,22 +182,18 @@ python -m pytest -q
 ```
 
 Review the README's Lesson 21 commands, caveats and Lesson 22 integration contract.
-Review the uncommitted Lesson 22 changes before a separately requested commit. Confirm branch and
+Review the Lesson 23 diff before any separately approved staging or commit. Confirm branch and
 commit state with Git, keep credentials and `data/raw/` untracked, and use
 offline replay for repeatable ingestion checks. Merge only when requested.
 
 ## 6. Proposed next milestones
 
-**Next development objective:** Close out the tested, uncommitted Lesson 22
-changes, then define explicit treatment of excerpts and provider salary metadata
-for controlled processing. The prepared-posting integration helper now exists;
-an executable workflow connecting retrieval, processing, summaries and exports
-still needs implementation and verification. A live end-to-end LLM run has not
-been established by the offline tests.
-
-Then develop a provenance-aware record-level export combining classifications,
-salary assessments and source metadata, followed by job-market dashboards.
-Concurrency, retries and persistent ingestion history remain future considerations.
+**Next development objective:** Obtain approval for the Lesson 23 review, then
+develop a small executable offline workflow connecting preparation, injected
+processing, summaries and record-level export. Define explicit excerpt/provider
+salary policies before controlled live processing. Add source-qualified outcome
+identity if multi-provider batches are introduced. Dashboards, retries,
+concurrency and persistent history remain later work.
 
 ## 7. Working agreement for future lessons
 
@@ -663,7 +663,7 @@ must not be committed. Live end-to-end processing and persistent storage remain 
 
 **Date:** 28 October 2026
 
-**Status:** Implemented and tested; not yet committed.
+**Status:** Committed at `9a672ee` (verified 30 October 2026).
 
 **Branch:** `lesson/22-offline-batch-integration`.
 
@@ -689,7 +689,7 @@ processor and deterministic summary through a small, testable integration bounda
 1 xfailed in 4.71s**. `git diff --check` was clean. These are confirmed session
 results, not tests rerun as part of this documentation update.
 
-**Architecture and limitations:** The helper joins prepared postings to outcomes
+**Architecture and limitations at Lesson 22 completion:** The helper joins prepared postings to outcomes
 and a summary. The existing batch metrics CSV writer is a separate caller step.
 The integration tests use an injected processor and do not verify live end-to-end
 LLM processing. No executable CLI connects every component. Batch processing
@@ -697,9 +697,65 @@ remains sequential without retries or persistent history. Adzuna excerpts and
 provider salary metadata retain their existing caveats; comprehensive
 provenance-aware record-level export remains future work.
 
-**Next:** Review and commit Lesson 22 when requested, then define controlled
-processing policies and an executable workflow before extending provenance-aware
-exports. No commit was made for this documentation update.
+**Next at that milestone:** Provenance-aware export (Lesson 23 below); an
+executable workflow and controlled processing policies remain outstanding.
+
+### Lesson 23 — Provenance-aware Analytical Export
+
+**Date:** 30 October 2026
+
+**Branch:** `lesson/23-provenance-aware-export`
+
+**Status:** Reviewed and tested; awaiting user approval. Nothing staged, committed,
+pushed or merged during this review.
+
+**Implementation:** Added `analytics/job_export.py` (`JobExportRow`,
+`build_job_export_rows`) and `analytics/job_export_csv.py`
+(`JOB_EXPORT_COLUMNS`, `write_job_export_csv`), with corresponding
+`tests/analytics/test_job_export.py` and `test_job_export_csv.py`.
+The four files remain untracked. README and this handover describe the contract.
+
+**Architecture and decisions:**
+
+- Agents/LLMs interpret; deterministic Python/Pydantic validates and serializes.
+- Strict positional pairing rejects unequal list lengths or mismatched IDs.
+  Input order is preserved without sorting or deduplication.
+- Original posting provenance, company and provider salary metadata survive all
+  three statuses, including failures.
+- Only processed outcomes supply analytical fields. Review-required rows retain
+  the classification review reason; failed rows retain provenance.
+- Corrected a review gap: the upstream result model permits an analytical record
+  alongside a review-required classification. The exporter now suppresses that
+  unapproved record; a regression case exercises this otherwise valid input.
+- Analytical salary bounds rely on upstream verification and complete annual GBP
+  eligibility. Provider bounds/prediction flags remain separate and never serve
+  as fallback values. Processed does not imply salary-verified.
+- CSV has 14 fixed columns, UTF-8 encoding, LF record terminators, a final newline,
+  JSON-mode enum/timestamp values, empty missing values and True/False flags.
+  Identical ordered inputs produce identical bytes; ordinary CSV quoting
+  preserves embedded source text. Empty input produces a header.
+
+**Validation:** 15 focused export tests passed in 0.40s; full regression suite
+**259 passed, 2 skipped, 1 xfailed in 0.43s**. API credentials were removed for
+both runs; no live API/LLM calls were made. Two live OpenAI tests skipped;
+the known remote-first classification-rule case remains expected to fail.
+The supplied baseline was 257 passed / 1 xfailed with 11 focused tests.
+Four added cases plus two intentionally skipped live tests explain the new total.
+Coverage includes all statuses, mismatches, provider/analytical salary separation,
+review-required records containing analytics, row order, byte repeatability,
+header-only output, quoting, Unicode, LF and true/false/unknown flags.
+
+**Limitations:** Positional ID checks cannot detect all cross-provider collisions.
+Manually built export/analytical models do not prove salary verification. Selected
+provenance omits source URL and raw text; salary audit details and failure errors
+remain outside this schema. Excerpts are labelled, not upgraded to full evidence.
+No atomic writes, automatic parent-directory creation, executable end-to-end CLI
+or persistent history. Existing files are overwritten. README includes a complete
+synthetic offline example and the focused/full test commands.
+
+**Next:** User approval of this diff before staging or committing; then an
+executable offline processing/export workflow with explicit excerpt/provider
+salary policy. Live end-to-end processing remains unverified.
 
 ## 10. Open housekeeping items
 
@@ -731,7 +787,7 @@ exports. No commit was made for this documentation update.
 - [x] Complete bounded pagination, validation/error handling, deduplication and the injectable preparation/ingestion pipeline.
 - [x] Record the reported green Lesson 20 suite: 220 passed, 2 skipped, 1 xfailed (evidence qualification above).
 - [x] Confirm Lesson 20 completion commit `a3068b1`.
-- [x] Confirm local `main` at Lesson 20 commit `a3068b1`.
+- [x] Confirm local `main` at Lesson 20 commit `a3068b1` (27 October 2026 historical checkpoint).
 - [x] Lesson 21: complete live/offline smoke support and verify existing local snapshot replay.
 - [x] Verify credentials and local raw snapshots are excluded for the Lesson 21 commit.
 - [ ] Continue checking credential/snapshot exclusions before future commits.
@@ -739,6 +795,9 @@ exports. No commit was made for this documentation update.
 - [x] Implement Lesson 22 prepared-posting batch integration and four passing tests.
 - [x] Remove the duplicate batch-summary test import.
 - [x] Confirm Lesson 22 full suite: 246 passed, 1 xfailed in 4.71s; clean `git diff --check`.
-- [ ] Review and commit Lesson 22 on `lesson/22-offline-batch-integration` when requested.
+- [x] Verify Lesson 22 commit `9a672ee`.
+- [x] Review Lesson 23 export contracts and run focused/full offline tests.
+- [ ] Obtain approval for Lesson 23 before staging or committing.
 - [ ] Define excerpt/provider salary policies and verify an executable processing/export workflow.
-- [ ] Implement comprehensive provenance-aware record-level export.
+- [x] Implement Lesson 23 selected provenance-aware record-level export.
+- [ ] Extend audit fields only when a downstream use case requires them.
