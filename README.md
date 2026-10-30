@@ -71,8 +71,8 @@ flowchart TD
 
 The diagram shows component relationships, not an executable end-to-end CLI.
 Lesson 22 connects prepared postings to processing through `run_postings_batch()`;
-it returns outcomes and `summarize_batch(outcomes)`. CSV serialization remains a
-separate caller step. Lesson 23 adds the record-level export boundary. Offline integration tests
+it returns outcomes and `summarize_batch(outcomes)`. Lesson 23 adds the record-level
+export boundary; Lesson 24 composes both CSV exports in `run_offline_workflow()`. Offline integration tests
 use an injected processor; they do not demonstrate a live end-to-end LLM workflow.
 
 ## Job Advertisement Ingestion Contract
@@ -514,8 +514,80 @@ env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pyt
 env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
 ```
 
-Current branch: `lesson/23-provenance-aware-export`; Lesson 22 baseline:
-`9a672ee`. Lesson 23 changes remain unstaged and uncommitted pending review.
+Current branch: `lesson/24-offline-workflow`; Lesson 23 baseline: `dc2eeb6`.
+Lesson 24 is implemented and tested locally; nothing committed, merged or pushed.
+
+## Lesson 24 — End-to-End Offline Workflow
+
+`ingestion/offline_workflow.py` exposes
+`run_offline_workflow(postings, *, processor, job_export_path, summary_export_path)`.
+It accepts prepared `list[JobPosting]` values and returns `(outcomes, summary)`.
+The processor is required: pass an offline fixture or deterministic processor.
+The helper itself does not fetch advertisements or invoke an LLM; it cannot
+prevent a caller-supplied processor from using the network.
+
+The flow reuses `run_postings_batch()` → `build_job_export_rows()` →
+`write_job_export_csv()` and `write_batch_summary_csv()`. Pairing is validated
+before opening either output. Summary files use UTF-8 and `newline=""` so the
+existing LF and six-decimal rate contract is preserved. Adaptation and
+deduplication stay upstream. No new salary or provenance rules are introduced:
+excerpts remain labelled, provider salaries never fill verified salary fields,
+and only processed outcomes contribute approved analytics.
+
+Runnable synthetic example (from the repository root with the virtual environment):
+
+```bash
+PYTHONPATH=src .venv/bin/python - <<'PYTHON'
+from datetime import datetime, timezone
+from pathlib import Path
+from uk_job_market_agents.agents.batch_orchestration import BatchProcessingOutcome, ProcessingStatus
+from uk_job_market_agents.ingestion.offline_workflow import run_offline_workflow
+from uk_job_market_agents.models.job_posting import JobPosting
+
+postings = [JobPosting(
+    source="fixture", source_id="example-1", raw_title="Data Engineer",
+    raw_description="Python and SQL",
+    collected_at=datetime(2026, 10, 30, tzinfo=timezone.utc),
+)]
+
+def offline_processor(jobs):
+    return [BatchProcessingOutcome(
+        job_id=job.source_id, status=ProcessingStatus.FAILED,
+        error="Synthetic offline example; no model processing attempted",
+    ) for job in jobs]
+
+outcomes, summary = run_offline_workflow(
+    postings, processor=offline_processor,
+    job_export_path=Path("offline_jobs.csv"),
+    summary_export_path=Path("offline_summary.csv"),
+)
+print(summary)
+PYTHON
+```
+
+**File contract and limitations:** Use distinct `Path` destinations with existing
+parent directories. Same resolved paths and existing symlink/hard-link aliases
+are rejected before the processor runs. Existing outputs are overwritten.
+Processor and pairing failures propagate before writing; I/O failures propagate
+without rollback. The two writes are not atomic: a summary write failure can
+leave a completed jobs export. No CLI, fetching, retries, persistence or new
+validation framework is added. This is an offline integration boundary, not
+proof of live processing or salary verification.
+
+**Validation (30 October 2026):** 12 new workflow cases; combined focused tests
+**35 passed in 0.23s**; full suite **271 passed, 2 skipped, 1 xfailed in 0.46s**.
+Credentials were removed; live OpenAI tests skipped. New workflow tests block
+socket connections and cover empty/mixed batches, Unicode provenance, separate
+provider/analytical salaries (including missing verified salaries), suppression
+of review-required analytics, deterministic bytes, mismatches without file
+changes, and colliding destinations. The known classification-rule xfail remains.
+The supplied baseline of 261 passed includes the two tests skipped here;
+259 offline passes plus 12 new cases yields 271.
+
+```bash
+env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q tests/ingestion/test_offline_workflow.py tests/ingestion/test_batch_integration.py tests/analytics/test_job_export.py tests/analytics/test_job_export_csv.py tests/analytics/test_batch_output.py
+env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
+```
 
 ## Current Limitations
 
@@ -535,8 +607,8 @@ Current branch: `lesson/23-provenance-aware-export`; Lesson 22 baseline:
 
 ## Planned Development
 
-1. Approve Lesson 23 review before any staging or commit; then define explicit excerpt and provider salary policies for controlled processing.
-2. Add and verify an executable workflow connecting ingestion, processing, summaries and exports.
+1. Review Lesson 24; staging, committing and integration require a separate request.
+2. Next milestone: a snapshot-backed offline command using the workflow helper, with an explicit processor policy. Define excerpt and provider salary policies before controlled live processing.
 3. Develop analysis-ready datasets with appropriate provenance.
 4. Build operational monitoring and job-market dashboards.
 5. Investigate processing retries, persistence and concurrency where justified.

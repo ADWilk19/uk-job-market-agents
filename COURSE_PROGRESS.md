@@ -77,7 +77,8 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 20 — Adzuna API Client and Ingestion Pipeline | Completed; integrated into local `main` | Client `180bb76`; ingestion and deduplication `a3068b1`. |
 | Lesson 21 — Adzuna Live Smoke and Snapshot Replay | Completed; committed | Offline default, explicit live mode, provider metadata and offline regression coverage; commit `28fd5dc`. |
 | Lesson 22 — Offline Batch Integration | Committed at `9a672ee` | Injectable `run_postings_batch()` returns outcomes and a batch summary; four integration tests. |
-| Lesson 23 — Provenance-aware export | Reviewed and tested; awaiting approval | Typed rows, stable CSV, 15 focused tests; no staging or commit. |
+| Lesson 23 — Provenance-aware export | Committed at `dc2eeb6` | Typed rows, stable CSV and 15 focused tests. |
+| Lesson 24 — End-to-End Offline Workflow | Implemented and tested locally; uncommitted | Required injected processor, two existing CSV writers, 12 new cases. |
 
 ### Domain vocabulary
 
@@ -135,17 +136,17 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/21-adzuna-live-smoke` | Controlled smoke and offline snapshot replay; commit `28fd5dc` |
 | `lesson/22-offline-batch-integration` | Prepared-posting batch integration; commit `9a672ee` |
 
-**Current working branch:** `lesson/23-provenance-aware-export`
+**Current working branch:** `lesson/24-offline-workflow`
 
-**Last verified stable integration baseline:** local `main` at `9a672ee` (Lesson 22), verified 30 October 2026.
+**Lesson 24 starting baseline:** `dc2eeb6` (Lesson 23), clean working tree verified 30 October 2026.
 
 Lesson 18 was committed, pushed and integrated into `main` at `6a94fea`.
 Lesson 19 is integrated into `main` at `2236261`.
 The Lesson 20 API client milestone is committed at `180bb76`.
 Lesson 20 ingestion and deduplication are committed at `a3068b1`, the historical
 Lesson 20 baseline. Lesson 21 is committed at `28fd5dc`.
-Lesson 22 is committed at `9a672ee`, the current branch baseline. Lesson 23
-remains unstaged and uncommitted; no new merge or push is asserted here.
+Lesson 22 is committed at `9a672ee`; Lesson 23 is committed at `dc2eeb6`.
+Lesson 24 remains uncommitted; no merge or push was performed.
 
 ### Testing history
 
@@ -182,18 +183,18 @@ python -m pytest -q
 ```
 
 Review the README's Lesson 21 commands, caveats and Lesson 22 integration contract.
-Review the Lesson 23 diff before any separately approved staging or commit. Confirm branch and
+Review the Lesson 24 diff before any separately requested staging or commit. Confirm branch and
 commit state with Git, keep credentials and `data/raw/` untracked, and use
 offline replay for repeatable ingestion checks. Merge only when requested.
 
 ## 6. Proposed next milestones
 
-**Next development objective:** Obtain approval for the Lesson 23 review, then
-develop a small executable offline workflow connecting preparation, injected
-processing, summaries and record-level export. Define explicit excerpt/provider
-salary policies before controlled live processing. Add source-qualified outcome
-identity if multi-provider batches are introduced. Dashboards, retries,
-concurrency and persistent history remain later work.
+**Next development objective:** Review Lesson 24, then consider a snapshot-backed
+offline command using the helper and an explicit processor policy. Define
+excerpt/provider salary policies before controlled live processing. Add
+source-qualified outcome identity only if multi-provider batches are introduced.
+Dashboards, retries, concurrency and persistent history remain later work.
+Work handled coding for Lesson 24 only; future lessons retain the teaching agreement.
 
 ## 7. Working agreement for future lessons
 
@@ -706,14 +707,14 @@ executable workflow and controlled processing policies remain outstanding.
 
 **Branch:** `lesson/23-provenance-aware-export`
 
-**Status:** Reviewed and tested; awaiting user approval. Nothing staged, committed,
-pushed or merged during this review.
+**Status:** Committed at `dc2eeb6` (verified at Lesson 24 start). The original
+review below performed no staging, commits, pushes or merges.
 
 **Implementation:** Added `analytics/job_export.py` (`JobExportRow`,
 `build_job_export_rows`) and `analytics/job_export_csv.py`
 (`JOB_EXPORT_COLUMNS`, `write_job_export_csv`), with corresponding
 `tests/analytics/test_job_export.py` and `test_job_export_csv.py`.
-The four files remain untracked. README and this handover describe the contract.
+The four files are now tracked in `dc2eeb6`. README and this handover describe the contract.
 
 **Architecture and decisions:**
 
@@ -753,9 +754,49 @@ No atomic writes, automatic parent-directory creation, executable end-to-end CLI
 or persistent history. Existing files are overwritten. README includes a complete
 synthetic offline example and the focused/full test commands.
 
-**Next:** User approval of this diff before staging or committing; then an
-executable offline processing/export workflow with explicit excerpt/provider
-salary policy. Live end-to-end processing remains unverified.
+**Next at that milestone:** Offline processing/export composition (Lesson 24 below).
+Live end-to-end processing remains unverified.
+
+### Lesson 24 — End-to-End Offline Workflow
+
+**Date:** 30 October 2026
+
+**Status / branch:** Implemented and tested locally on `lesson/24-offline-workflow`.
+No staging, commit, merge or push. Work coding authorization applies to this lesson only.
+
+**Architecture:** `ingestion/offline_workflow.py` adds `run_offline_workflow()`
+for prepared postings, a required injected processor and two `Path` destinations.
+It reuses batch integration, strict export-row pairing and both existing writers,
+returning outcomes and `BatchSummary`. Summary output opens with UTF-8 and
+`newline=""`. No duplicate pairing or salary validation is introduced.
+
+**Usage:** See README's runnable synthetic example and focused/full test commands.
+Preparation stays upstream; offline behavior depends on the injected processor.
+Provider salary metadata and excerpt labels survive every outcome; approved
+analytics remain restricted to processed outcomes. No provider salary fallback.
+
+**Tests:** Added `tests/ingestion/test_offline_workflow.py` (12 cases).
+Tests first failed for the missing module. After implementation and correcting
+an explicit required `review_reason=None` in the fixture, the combined focused
+suite passed: **35 passed in 0.23s**. Full offline suite: **271 passed, 2 skipped,
+1 xfailed in 0.46s**. Credentials were removed; two live OpenAI cases skipped.
+The reported 261-pass baseline becomes 259 passes with those tests skipped,
+then 12 new cases yield 271. Workflow tests block socket connections.
+Coverage includes empty and mixed batches, provenance/Unicode, provider versus
+verified or absent salary, suppression of review analytics, byte repeatability,
+length/ID mismatches without touching outputs, and path collisions.
+
+**Decisions and limitations:** The processor is required to avoid accidentally
+selecting the live default. Resolve/same-file checks prevent the summary from
+overwriting the jobs export via equal paths or existing aliases, before processing.
+Parent directories must exist. Writes overwrite existing files and are not atomic;
+a later I/O failure may leave one completed export. Exceptions propagate. There
+is no CLI, live ingestion, new salary policy or persistent processing history.
+Existing selected-provenance and positional-identity limitations remain.
+
+**Next milestone:** Review this lesson, then consider a snapshot-backed offline
+command with explicit processing policy. No open decision blocks Lesson 24;
+atomic publication and live processing are deferred to demonstrated requirements.
 
 ## 10. Open housekeeping items
 
@@ -797,7 +838,7 @@ salary policy. Live end-to-end processing remains unverified.
 - [x] Confirm Lesson 22 full suite: 246 passed, 1 xfailed in 4.71s; clean `git diff --check`.
 - [x] Verify Lesson 22 commit `9a672ee`.
 - [x] Review Lesson 23 export contracts and run focused/full offline tests.
-- [ ] Obtain approval for Lesson 23 before staging or committing.
+- [x] Verify Lesson 23 completion commit `dc2eeb6`.
 - [ ] Define excerpt/provider salary policies and verify an executable processing/export workflow.
 - [x] Implement Lesson 23 selected provenance-aware record-level export.
 - [ ] Extend audit fields only when a downstream use case requires them.
