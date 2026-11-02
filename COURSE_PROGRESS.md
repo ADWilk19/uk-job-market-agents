@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 30 October 2026
+**Last updated:** 2 November 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -78,7 +78,8 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 21 — Adzuna Live Smoke and Snapshot Replay | Completed; committed | Offline default, explicit live mode, provider metadata and offline regression coverage; commit `28fd5dc`. |
 | Lesson 22 — Offline Batch Integration | Committed at `9a672ee` | Injectable `run_postings_batch()` returns outcomes and a batch summary; four integration tests. |
 | Lesson 23 — Provenance-aware export | Committed at `dc2eeb6` | Typed rows, stable CSV and 15 focused tests. |
-| Lesson 24 — End-to-End Offline Workflow | Implemented and tested locally; uncommitted | Required injected processor, two existing CSV writers, 12 new cases. |
+| Lesson 24 — End-to-End Offline Workflow | Committed at `3c4b8df` | Required injected processor, two existing CSV writers, 12 new cases. |
+| Lesson 25 — Processing policy | Implemented and tested locally; uncommitted | COMPLETE-only salary extraction; skipped assessments and provider predictions remain distinct. |
 
 ### Domain vocabulary
 
@@ -136,7 +137,9 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/21-adzuna-live-smoke` | Controlled smoke and offline snapshot replay; commit `28fd5dc` |
 | `lesson/22-offline-batch-integration` | Prepared-posting batch integration; commit `9a672ee` |
 
-**Current working branch:** `lesson/24-offline-workflow`
+**Current working branch:** `lesson/25-processing-policy`
+
+**Lesson 25 baseline:** `3c4b8df` (Lesson 24), verified 2 November 2026.
 
 **Lesson 24 starting baseline:** `dc2eeb6` (Lesson 23), clean working tree verified 30 October 2026.
 
@@ -146,7 +149,8 @@ The Lesson 20 API client milestone is committed at `180bb76`.
 Lesson 20 ingestion and deduplication are committed at `a3068b1`, the historical
 Lesson 20 baseline. Lesson 21 is committed at `28fd5dc`.
 Lesson 22 is committed at `9a672ee`; Lesson 23 is committed at `dc2eeb6`.
-Lesson 24 remains uncommitted; no merge or push was performed.
+Lesson 24 is committed at `3c4b8df`. Lesson 25 changes remain uncommitted;
+this documentation close-out performs no staging, commit, merge or push.
 
 ### Testing history
 
@@ -183,15 +187,16 @@ python -m pytest -q
 ```
 
 Review the README's Lesson 21 commands, caveats and Lesson 22 integration contract.
-Review the Lesson 24 diff before any separately requested staging or commit. Confirm branch and
+Review the Lesson 25 diff before any separately requested staging or commit. Confirm branch and
 commit state with Git, keep credentials and `data/raw/` untracked, and use
 offline replay for repeatable ingestion checks. Merge only when requested.
 
 ## 6. Proposed next milestones
 
-**Next development objective:** Review Lesson 24, then consider a snapshot-backed
-offline command using the helper and an explicit processor policy. Define
-excerpt/provider salary policies before controlled live processing. Add
+**Next development objective:** Review Lesson 25, then develop a snapshot-backed
+offline command using the existing workflow and an explicit offline processor.
+Preserve the COMPLETE-only extraction policy and provider/verified salary
+separation established in Lesson 25. Add
 source-qualified outcome identity only if multi-provider batches are introduced.
 Dashboards, retries, concurrency and persistent history remain later work.
 Work handled coding for Lesson 24 only; future lessons retain the teaching agreement.
@@ -761,8 +766,9 @@ Live end-to-end processing remains unverified.
 
 **Date:** 30 October 2026
 
-**Status / branch:** Implemented and tested locally on `lesson/24-offline-workflow`.
-No staging, commit, merge or push. Work coding authorization applies to this lesson only.
+**Status / branch:** Committed at `3c4b8df` on `lesson/24-offline-workflow`
+(verified at Lesson 25 close-out). The original close-out below made no commit.
+Work coding authorization applied to that lesson only.
 
 **Architecture:** `ingestion/offline_workflow.py` adds `run_offline_workflow()`
 for prepared postings, a required injected processor and two `Path` destinations.
@@ -794,9 +800,80 @@ a later I/O failure may leave one completed export. Exceptions propagate. There
 is no CLI, live ingestion, new salary policy or persistent processing history.
 Existing selected-provenance and positional-identity limitations remain.
 
-**Next milestone:** Review this lesson, then consider a snapshot-backed offline
+**Next at that milestone:** Review this lesson, then consider a snapshot-backed offline
 command with explicit processing policy. No open decision blocks Lesson 24;
 atomic publication and live processing are deferred to demonstrated requirements.
+
+### Lesson 25 — Description-completeness Processing Policy
+
+**Date:** 2 November 2026
+
+**Status / branch:** Implemented and tested locally on
+`lesson/25-processing-policy`, based on Lesson 24 commit `3c4b8df`.
+Implementation, tests and documentation remain uncommitted for user review.
+
+**Objective and learning:** Separate evidence availability from extraction
+outcomes. A missing assessment is not evidence that an employer omitted salary;
+provider predictions are not verified advertised salaries.
+
+**Implementation and design decisions:**
+
+- `ingestion/processing_policy.py` adds `should_attempt_salary_extraction()`:
+  only `DescriptionCompleteness.COMPLETE` returns true.
+- `process_job()` first classifies and builds an approved analytical record.
+  Classification review or missing resolution still prevents record construction
+  and salary extraction. Approved `EXCERPT` / `UNKNOWN` jobs retain their records
+  and provenance, skip the salary workflow and leave salary bounds empty.
+- `salary_assessment=None` means not attempted in this orchestration path.
+  `NOT_DISCLOSED` means attempted extraction returned no salary and no evidence.
+  Complete descriptions still require verification and annual GBP eligibility;
+  completeness alone does not make a salary suitable for analytics.
+- Job exports retain provider `source_salary_min/max` and
+  `source_salary_predicted` separately from verified analytical salary bounds.
+  Predictions never fill missing analytical salaries; `processed` does not mean
+  salary verified. The existing CSV omits assessment status, so retain outcomes
+  when distinguishing skipped extraction from non-disclosure.
+- Keep the policy deterministic and separate from LLM interpretation, salary
+  verification and export serialization. No new schema, classification gate or
+  provider fallback. Direct workflow calls and injected processors are outside
+  the `process_job()` gate.
+
+**Evidence-quality / coverage trade-off:** Adzuna remains excerpt-only; default
+completeness remains unknown. Excluding both reduces salary coverage, including
+potentially useful excerpt salary text, in exchange for requiring complete source
+evidence. Approved jobs still count in role/work-pattern analysis. The eligible
+salary subset may be unrepresentative; empty salary fields must not be treated
+as a non-disclosure rate. No automatic upgrade to complete evidence is made.
+
+**Changed areas:** Existing Lesson 25 work comprises
+`src/uk_job_market_agents/ingestion/processing_policy.py`,
+`src/uk_job_market_agents/agents/orchestration.py`,
+`tests/ingestion/test_processing_policy.py`, `tests/agents/test_orchestration.py`
+and `tests/analytics/test_job_export.py`. This close-out updates only README
+and COURSE_PROGRESS; it preserves the pre-existing implementation/test diff.
+
+**Tests and validation:** Policy tests cover all three enum values; two
+orchestration cases assert no salary workflow call for excerpt/unknown jobs,
+retained records, empty salary bounds and preserved completeness. Complete
+fixtures retain attempted extraction and verified/unverified salary coverage.
+The export regression preserves predicted £40,000–£60,000 provider bounds for
+an approved excerpt while leaving analytical salary empty. README provides the
+focused and full commands, including review/integration and CSV regressions.
+
+**40 focused tests passed in 0.29s**; full offline suite
+**277 passed, 2 skipped, 1 xfailed in 0.45s**. `git diff --check` is clean.
+The skips are the two credential-dependent OpenAI integration tests; the
+expected failure is the known remote-first / mandatory office-attendance rule.
+
+The supplied checkpoint was **279 passed, 1 xfailed**, with clean
+`git diff --check`. The offline rerun removes API credentials, so two live
+OpenAI tests skip; this explains the difference in passing count. No live
+API/LLM behavior is established by this close-out.
+
+**Next milestone:** A snapshot-backed offline command using the existing
+workflow and an explicit offline processor, preserving this policy. Review
+Lesson 25 before separately requested staging or committing. Persistence,
+concurrency, live processing and expanded export schemas remain deferred.
 
 ## 10. Open housekeeping items
 
@@ -839,6 +916,9 @@ atomic publication and live processing are deferred to demonstrated requirements
 - [x] Verify Lesson 22 commit `9a672ee`.
 - [x] Review Lesson 23 export contracts and run focused/full offline tests.
 - [x] Verify Lesson 23 completion commit `dc2eeb6`.
-- [ ] Define excerpt/provider salary policies and verify an executable processing/export workflow.
+- [x] Define excerpt/provider salary policies in Lesson 25.
+- [x] Document Lesson 25 behavior, trade-offs, tests and design decisions.
+- [ ] Review and commit Lesson 25 when requested.
+- [ ] Add a snapshot-backed offline command using the existing processing/export workflow.
 - [x] Implement Lesson 23 selected provenance-aware record-level export.
 - [ ] Extend audit fields only when a downstream use case requires them.

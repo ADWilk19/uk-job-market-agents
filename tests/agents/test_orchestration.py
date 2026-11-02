@@ -1,11 +1,13 @@
 from datetime import datetime, timezone
 from unittest.mock import patch
 
+import pytest
+
 from uk_job_market_agents.agents.classifier import ClassificationResult
 
 from uk_job_market_agents.agents.orchestration import (
     OrchestrationResult,
-    process_job
+    process_job,
 )
 
 from uk_job_market_agents.agents.salary_extractor import SalaryExtractionResult
@@ -54,7 +56,7 @@ def test_process_job_builds_approved_analytical_record():
         raw_description="Python, SQL and dbt. Hybrid working.",
         company_name="Example Analytics Ltd",
         location_raw="Southampton, Hampshire",
-        description_completeness=DescriptionCompleteness.EXCERPT,
+        description_completeness=DescriptionCompleteness.COMPLETE,
     )
 
     classification = ClassificationWorkflowResult.from_results(
@@ -107,11 +109,7 @@ def test_process_job_builds_approved_analytical_record():
     assert result.source == job.source
     assert result.source_url == job.source_url
     assert result.collected_at == job.collected_at
-    assert (
-        result.description_completeness
-        == DescriptionCompleteness.EXCERPT
-    )
-
+    assert result.description_completeness == job.description_completeness
 
 
 def test_process_job_excludes_classification_requiring_review():
@@ -169,6 +167,7 @@ def test_process_job_includes_verified_annual_salary():
         ),
         company_name="Example Analytics Ltd",
         location_raw="Southampton, Hampshire",
+        description_completeness=DescriptionCompleteness.COMPLETE,
     )
 
     classification = ClassificationWorkflowResult.from_results(
@@ -233,6 +232,7 @@ def test_process_job_excludes_unverified_salary():
         ),
         company_name="Example Analytics Ltd",
         location_raw="Southampton, Hampshire",
+        description_completeness=DescriptionCompleteness.COMPLETE,
     )
 
     classification = ClassificationWorkflowResult.from_results(
@@ -335,3 +335,54 @@ def test_orchestration_preserves_source_provenance(monkeypatch):
         result.description_completeness
         == DescriptionCompleteness.EXCERPT
     )
+
+
+@pytest.mark.parametrize(
+    "completeness",
+    [
+        DescriptionCompleteness.EXCERPT,
+        DescriptionCompleteness.UNKNOWN,
+    ],
+)
+def test_orchestration_excludes_salary_extraction_for_incomplete_jobs(
+    completeness: DescriptionCompleteness,
+    ):
+    job = JobPosting(
+            source_id="job-001",
+            source="example",
+            collected_at=datetime.now(timezone.utc),
+            raw_title="Senior Data Engineer",
+            raw_description="Python, SQL and dbt. Hybrid working.",
+            company_name="Example Analytics Ltd",
+            location_raw="Southampton, Hampshire",
+            description_completeness=completeness,
+        )
+
+    classification = ClassificationWorkflowResult.from_results(
+        rules_role_family=RoleFamily.DATA_ENGINEERING,
+        rules_work_pattern=WorkPattern.HYBRID,
+        llm=ClassificationResult(
+            role_family=RoleFamily.DATA_ENGINEERING,
+            work_pattern=WorkPattern.HYBRID,
+            reasoning="The advertisement describes a hybrid data engineering role.",
+        ),
+    )
+
+    with (
+        patch(
+            "uk_job_market_agents.agents.orchestration.run_classification_workflow",
+            return_value=classification,
+        ),
+        patch(
+            "uk_job_market_agents.agents.orchestration.run_salary_workflow",
+        ) as mock_salary,
+    ):
+        result = process_job(job)
+
+    mock_salary.assert_not_called()
+
+    assert result.salary_assessment is None
+    assert result.analytical_record is not None
+    assert result.analytical_record.salary_min is None
+    assert result.analytical_record.salary_max is None
+    assert result.description_completeness == completeness

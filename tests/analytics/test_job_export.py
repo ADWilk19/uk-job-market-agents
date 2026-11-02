@@ -1,6 +1,15 @@
 import pytest
 from datetime import datetime, timezone
+from unittest.mock import patch
 
+from uk_job_market_agents.agents.orchestration import (
+    OrchestrationResult,
+    process_job,
+)
+from uk_job_market_agents.agents.workflow import (
+    ClassificationWorkflowResult,
+)
+from uk_job_market_agents.agents.classifier import ClassificationResult
 from uk_job_market_agents.agents.batch_orchestration import (
     BatchProcessingOutcome,
     ProcessingStatus,
@@ -277,3 +286,67 @@ def test_processed_job_without_verified_salary():
     assert row.processing_status == ProcessingStatus.PROCESSED
     assert row.role_family == RoleFamily.DATA_ENGINEERING
     assert row.work_pattern == WorkPattern.HYBRID
+
+
+def test_excerpt_job_preserves_provider_salary_without_verification():
+    posting = JobPosting(
+        source="adzuna",
+        source_id="job-excerpt-001",
+        raw_title="Senior Data Engineer",
+        raw_description="Python, SQL and dbt. Hybrid working.",
+        collected_at=datetime(2026, 11, 2, tzinfo=timezone.utc),
+        description_completeness=DescriptionCompleteness.EXCERPT,
+        source_salary_min=40000.0,
+        source_salary_max=60000.0,
+        source_salary_predicted=True,
+    )
+
+    classification = ClassificationWorkflowResult.from_results(
+        rules_role_family=RoleFamily.DATA_ENGINEERING,
+        rules_work_pattern=WorkPattern.HYBRID,
+        llm=ClassificationResult(
+            role_family=RoleFamily.DATA_ENGINEERING,
+            work_pattern=WorkPattern.HYBRID,
+            reasoning="The advertisement describes a hybrid data engineering role.",
+        ),
+    )
+
+    with (
+        patch(
+            "uk_job_market_agents.agents.orchestration.run_classification_workflow",
+            return_value=classification,
+        ),
+        patch(
+            "uk_job_market_agents.agents.orchestration.run_salary_workflow",
+        ) as mock_salary,
+    ):
+        result = process_job(posting)
+
+    mock_salary.assert_not_called()
+
+    assert result.analytical_record is not None
+    assert result.salary_assessment is None
+
+    outcome = BatchProcessingOutcome(
+    job_id=posting.source_id,
+    status=ProcessingStatus.PROCESSED,
+    result=result,
+    )
+
+    rows = build_job_export_rows([posting], [outcome])
+
+    assert len(rows) == 1
+    row = rows[0]
+
+    # Provider-supplied salary is preserved.
+    assert row.source_salary_min == 40000.0
+    assert row.source_salary_max == 60000.0
+    assert row.source_salary_predicted is True
+
+    # Provider estimates are not promoted to verified salary.
+    assert row.salary_min is None
+    assert row.salary_max is None
+
+    # Processing status and description provenance are retained.
+    assert row.processing_status == ProcessingStatus.PROCESSED
+    assert row.description_completeness == DescriptionCompleteness.EXCERPT

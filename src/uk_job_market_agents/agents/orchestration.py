@@ -14,6 +14,9 @@ from uk_job_market_agents.analytics.record_builder import (
 from uk_job_market_agents.analytics.salary_integration import (
     apply_salary_assessment,
 )
+from uk_job_market_agents.ingestion.processing_policy import (
+    should_attempt_salary_extraction,
+)
 from uk_job_market_agents.models.job_posting import JobPosting, DescriptionCompleteness
 
 
@@ -65,13 +68,15 @@ def process_job(job: JobPosting) -> OrchestrationResult:
             **provenance,
         )
 
-    assessment = run_salary_workflow(job.raw_description)
+    assessment = None
 
-    record = apply_salary_assessment(
-        record=record,
-        assessment=assessment,
-    )
+    if should_attempt_salary_extraction(job.description_completeness):
+        assessment = run_salary_workflow(job.raw_description)
 
+        record = apply_salary_assessment(
+            record=record,
+            assessment=assessment,
+        )
 
     return OrchestrationResult(
         classification=resolution,

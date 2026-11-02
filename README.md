@@ -39,6 +39,7 @@ The project separates responsibilities across several components:
 | Offline batch integration | Pass prepared postings to an injectable processor and return outcomes with a batch summary |
 | Batch orchestration | Process advertisements sequentially, preserve outcomes and isolate failures |
 | Batch metrics | Calculate validated processing counts and derived rates |
+| Processing policy | Permit salary extraction only for complete descriptions after classification approval |
 | Salary policy | Determine eligibility for annual salary analysis |
 | Analytics | Construct analytical records and calculate summary metrics |
 | CSV export | Serialize analytical results for downstream consumption |
@@ -57,7 +58,10 @@ flowchart TD
     Job --> Classify["Rules + LLM classification"]
     Classify --> Adjudicate["Adjudication / workflow resolution"]
     Adjudicate -->|"Review required"| Review["Classification review; skip salary extraction"]
-    Adjudicate -->|"Approved"| Salary["Salary extraction + verification"]
+    Adjudicate -->|"Approved"| Policy{"Description COMPLETE?"}
+    Policy -->|"Yes"| Salary["Salary extraction + verification"]
+    Policy -->|"No: EXCERPT / UNKNOWN"| Skip["Retain approved record; no salary assessment"]
+    Skip --> Outcomes
     Review --> Outcomes["BatchProcessingOutcome list"]
     Salary --> Outcomes
     Job -->|"Processing exception caught by process_jobs"| Failed["FAILED outcome"]
@@ -355,8 +359,10 @@ The orchestrator:
 - Builds an analytical record, preserving `company_name` and `location_raw`.
 - Stops before salary extraction if classification review is required or no
   resolved classification is available.
-- For an approved advertisement, extracts and verifies salary information
-  from the raw description, then applies the salary assessment to the record.
+- For an approved advertisement with a `COMPLETE` description, extracts and
+  verifies salary information, then applies the salary assessment to the record.
+- Skips salary extraction for `EXCERPT` and `UNKNOWN` descriptions while
+  retaining approved analytical records with empty salary fields.
 - Retains the approved advertisement when salary review is required, salary
   is not disclosed, or the quotation is ineligible for annual analysis.
   Annual salary fields remain empty in these cases.
@@ -514,8 +520,8 @@ env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pyt
 env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
 ```
 
-Current branch: `lesson/24-offline-workflow`; Lesson 23 baseline: `dc2eeb6`.
-Lesson 24 is implemented and tested locally; nothing committed, merged or pushed.
+Current branch: `lesson/25-processing-policy`; Lesson 24 baseline: `3c4b8df`.
+Lesson 25 implementation, tests and documentation remain uncommitted for review.
 
 ## Lesson 24 — End-to-End Offline Workflow
 
@@ -589,6 +595,72 @@ env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pyt
 env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
 ```
 
+## Lesson 25 — Description-completeness processing policy
+
+`ingestion/processing_policy.py` defines the deterministic predicate
+`should_attempt_salary_extraction()`. `process_job()` applies it only after
+classification permits an analytical record:
+
+| Description completeness | Salary processing for an approved job |
+| --- | --- |
+| `COMPLETE` | Attempt extraction and verification; apply the existing analytical eligibility rules |
+| `EXCERPT` | Skip extraction; retain the analytical record with empty salary bounds |
+| `UNKNOWN` | Skip extraction; retain the analytical record with empty salary bounds |
+
+In the normal orchestration path, `salary_assessment=None` means extraction was
+**not attempted**, either because classification prevented record construction
+or because description completeness excluded it. `NOT_DISCLOSED` is an actual
+assessment after extraction was attempted and returned neither salary nor
+evidence. A skipped excerpt must not be counted as an advertisement with no
+salary disclosed. `COMPLETE` permits an attempt; it does not guarantee a verified
+salary. Verification and complete annual GBP range eligibility still apply.
+
+Exports preserve `source_salary_min`, `source_salary_max` and
+`source_salary_predicted` from the original posting separately from analytical
+`salary_min` / `salary_max`. For example, an approved excerpt with predicted
+provider bounds of £40,000–£60,000 retains those provider fields and its
+`processed` status, but has empty analytical salary bounds. Provider values
+never substitute for verified salary, even when the prediction flag is false.
+The existing 14-column job CSV does not include salary assessment status; retain
+orchestration results to distinguish skipped extraction from `NOT_DISCLOSED`.
+
+**Design and trade-off:** Completeness is explicit source metadata, not an LLM
+judgement or a text-length heuristic. Adzuna descriptions remain `EXCERPT` and
+other postings default to `UNKNOWN`; neither is silently promoted to `COMPLETE`.
+This conservative gate prioritises evidence quality over salary coverage: it
+also excludes usable salary text that might appear in an excerpt. Approved jobs
+remain available for role/work-pattern counts, but salary statistics cover a
+smaller, potentially unrepresentative subset. Missing salary bounds alone do
+not measure salary non-disclosure. The gate is enforced in `process_job()`, not
+in the exporter or direct calls to the salary workflow; injected processors
+remain responsible for their own behavior. No schema or classification policy
+change is introduced.
+
+**Tests:** Three parameterised policy cases cover every completeness value;
+two orchestration cases assert that excerpt/unknown jobs never call the salary
+workflow and retain records/provenance with empty salaries. Existing complete
+fixtures exercise attempted extraction, verified salaries and unverified
+salary exclusion. An export regression carries an excerpt through mocked
+classification and `process_job()` to prove provider predictions survive
+without becoming analytical salary. These tests use mocks, not live LLM calls.
+
+```bash
+env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q tests/ingestion/test_processing_policy.py tests/agents/test_orchestration.py tests/analytics/test_job_export.py tests/analytics/test_job_export_csv.py tests/agents/test_salary_review.py tests/analytics/test_salary_integration.py
+env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
+```
+
+**Validation (2 November 2026):** **40 focused tests passed in 0.29s**; full offline suite
+**277 passed, 2 skipped, 1 xfailed in 0.45s**. `git diff --check` is clean.
+The skips are the two credential-dependent OpenAI integration tests; the
+expected failure is the known remote-first / mandatory office-attendance rule.
+
+The supplied checkpoint was 279 passed, 1 xfailed. Removing API credentials
+for this rerun accounts for two live tests moving from passed to skipped.
+
+**Next milestone:** A snapshot-backed offline command composing the existing
+workflow with an explicit offline processor and this documented salary policy.
+Live processing, persistence and additional audit columns remain deferred.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, retries or
@@ -607,8 +679,8 @@ env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pyt
 
 ## Planned Development
 
-1. Review Lesson 24; staging, committing and integration require a separate request.
-2. Next milestone: a snapshot-backed offline command using the workflow helper, with an explicit processor policy. Define excerpt and provider salary policies before controlled live processing.
+1. Review Lesson 25; staging, committing and integration require a separate request.
+2. Next milestone: a snapshot-backed offline command using the workflow helper, with an explicit processor policy. Retain the Lesson 25 completeness gate and provider/verified salary separation.
 3. Develop analysis-ready datasets with appropriate provenance.
 4. Build operational monitoring and job-market dashboards.
 5. Investigate processing retries, persistence and concurrency where justified.
