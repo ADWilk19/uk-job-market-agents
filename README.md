@@ -76,7 +76,8 @@ flowchart TD
 The diagram shows component relationships, not an executable end-to-end CLI.
 Lesson 22 connects prepared postings to processing through `run_postings_batch()`;
 it returns outcomes and `summarize_batch(outcomes)`. Lesson 23 adds the record-level
-export boundary; Lesson 24 composes both CSV exports in `run_offline_workflow()`. Offline integration tests
+export boundary; Lesson 24 composes both CSV exports in `run_offline_workflow()`; Lesson 26 adds
+`run_snapshot_workflow()` to load and prepare a saved response first. Offline integration tests
 use an injected processor; they do not demonstrate a live end-to-end LLM workflow.
 
 ## Job Advertisement Ingestion Contract
@@ -520,8 +521,9 @@ env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pyt
 env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
 ```
 
-Current branch: `lesson/25-processing-policy`; Lesson 24 baseline: `3c4b8df`.
-Lesson 25 implementation, tests and documentation remain uncommitted for review.
+Current branch: `lesson/26-snapshot-execution`; baseline: Lesson 25 commit
+`bfac158` (also local `main`, verified 3 November 2026). Lesson 26 source/tests
+remain untracked; its documentation changes are uncommitted.
 
 ## Lesson 24 — End-to-End Offline Workflow
 
@@ -657,9 +659,98 @@ expected failure is the known remote-first / mandatory office-attendance rule.
 The supplied checkpoint was 279 passed, 1 xfailed. Removing API credentials
 for this rerun accounts for two live tests moving from passed to skipped.
 
-**Next milestone:** A snapshot-backed offline command composing the existing
-workflow with an explicit offline processor and this documented salary policy.
+**Follow-on:** Lesson 26 adds the snapshot-backed Python API below.
 Live processing, persistence and additional audit columns remain deferred.
+
+## Lesson 26 — Snapshot-backed offline execution
+
+`run_snapshot_workflow(snapshot_path, *, collected_at, processor,
+job_export_path, summary_export_path)` loads a saved Adzuna response, prepares
+unique postings, and reuses Lesson 24 processing and CSV exports. It returns
+`(list[BatchProcessingOutcome], BatchSummary)`. This is a Python API, not a CLI.
+
+- `load_adzuna_snapshot(Path)` reads UTF-8 JSON and requires a top-level object
+  with a `results` list containing only objects; an empty list is valid.
+  Structural failures raise `ValueError`; malformed JSON raises
+  `JSONDecodeError`, and file errors propagate. Advertisement-field validation
+  happens later in the existing adapter / `JobPosting` model.
+- `prepare_adzuna_snapshot(Path, *, collected_at)` reuses
+  `prepare_adzuna_postings()`: adapt every advert, then deduplicate by
+  `(source, source_id)`, retaining the first occurrence and first-seen order.
+  Invalid adverts stop preparation; they are not silently skipped.
+- Supply an explicit timezone-aware `collected_at`, validated when postings are
+  built. It is not inferred from the file, publication date or current clock;
+  use a known capture time if available, otherwise document your replay-time
+  convention. Empty snapshots build no postings, so do not validate the timestamp.
+- The required processor receives the prepared list and must return one outcome
+  per posting in the same order with matching `job_id`. Supply a network-free
+  processor for offline use: neither helper prevents injected code from making
+  network calls, and `process_jobs` normally invokes LLM services.
+
+Run this synthetic example from the repository root; it creates temporary input
+and output files and demonstrates export with deliberately failed outcomes:
+
+```bash
+PYTHONPATH=src .venv/bin/python - <<'PYTHON'
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from uk_job_market_agents.agents.batch_orchestration import BatchProcessingOutcome, ProcessingStatus
+from uk_job_market_agents.ingestion.snapshot_execution import run_snapshot_workflow
+
+def offline_processor(postings):
+    return [BatchProcessingOutcome(
+        job_id=p.source_id, status=ProcessingStatus.FAILED,
+        error="Synthetic example; no model processing attempted",
+    ) for p in postings]
+
+with TemporaryDirectory() as directory:
+    root = Path(directory)
+    snapshot = root / "snapshot.json"
+    snapshot.write_text(json.dumps({"results": [{
+        "id": "example-26", "title": "Data Engineer",
+        "description": "Python and SQL excerpt",
+        "salary_min": 40000, "salary_max": 60000,
+        "salary_is_predicted": "1",
+    }]}), encoding="utf-8")
+    outcomes, summary = run_snapshot_workflow(
+        snapshot,
+        collected_at=datetime(2026, 11, 3, tzinfo=timezone.utc),
+        processor=offline_processor,
+        job_export_path=root / "jobs.csv",
+        summary_export_path=root / "summary.csv",
+    )
+    print(summary)
+    print((root / "jobs.csv").read_text(encoding="utf-8"))
+    print((root / "summary.csv").read_text(encoding="utf-8"))
+PYTHON
+```
+
+For a saved response, pass its local `Path` and distinct output paths with existing
+parents. Existing files are overwritten; the two writes are not atomic. The job
+CSV uses the existing 14-column contract; summary CSV contains batch counts and
+rates. Empty results with an empty processor result produce a header-only job
+CSV and a zero-count summary. See Lesson 24 for pairing/path checks and failure
+behavior, and Lesson 21 for keeping local snapshots out of Git.
+
+Original posting identity, collection time, excerpt label, company and provider
+salary metadata survive export even for failures. Adzuna descriptions remain
+`EXCERPT`: normal `process_job()` skips salary extraction for them while retaining
+approved classification records. Provider `source_salary_*` values are separate
+from verified analytical salary bounds and never fill them; `processed` does not
+mean salary verified. Injected processors must uphold their own processing policy.
+
+```bash
+.venv/bin/python -m pytest -q tests/ingestion/test_snapshot_loader.py tests/ingestion/test_snapshot_pipeline.py tests/ingestion/test_snapshot_execution.py
+env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
+git diff --check
+```
+
+**Validation (3 November 2026):** 16 snapshot tests passed; the execution tests
+block socket connections. Full offline rerun: 293 passed, 2 credential-dependent
+OpenAI tests skipped, 1 known xfailed. The user-verified full run was 295 passed,
+1 xfailed in 7.81s; the two skipped live tests explain the difference.
 
 ## Current Limitations
 
@@ -671,7 +762,8 @@ Live processing, persistence and additional audit columns remain deferred.
   but a live end-to-end LLM workflow has not been verified. No executable CLI
   connects all retrieval, processing, summary and export components.
 - Adzuna descriptions remain excerpts, and provider salary metadata is not
-  verified salary evidence. Replay does not preserve the original fetch time.
+  verified salary evidence. The smoke replay assigns current time; the Lesson 26
+  API uses the caller-supplied timestamp and cannot recover an unknown fetch time.
 - Analytical records do not currently preserve original salary
   quotations.
 - Lesson 23 exports selected provenance and analytical fields; detailed salary
@@ -679,8 +771,8 @@ Live processing, persistence and additional audit columns remain deferred.
 
 ## Planned Development
 
-1. Review Lesson 25; staging, committing and integration require a separate request.
-2. Next milestone: a snapshot-backed offline command using the workflow helper, with an explicit processor policy. Retain the Lesson 25 completeness gate and provider/verified salary separation.
+1. Review the uncommitted Lesson 26 snapshot API and documentation; staging and committing remain separate steps.
+2. Agree the next lesson after review; retain explicit processor policy, the completeness gate and provider/verified salary separation.
 3. Develop analysis-ready datasets with appropriate provenance.
 4. Build operational monitoring and job-market dashboards.
 5. Investigate processing retries, persistence and concurrency where justified.
