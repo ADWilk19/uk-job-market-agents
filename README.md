@@ -24,6 +24,7 @@ The project separates responsibilities across several components:
 
 | Component | Responsibility |
 | --------- | -------------- |
+| Snapshot CLI / processor factory | Parse explicit agent mode, select batch processor, run snapshot workflow and report exit status |
 | Pydantic models | Validate structured job advertisement data |
 | Adzuna API client | Retrieve provider data with bounded pagination, validation/error handling and injectable transport |
 | Ingestion pipeline | Fetch, adapt and deduplicate advertisements by `(source, source_id)` |
@@ -73,7 +74,8 @@ flowchart TD
     Export --> JobCSV["write_job_export_csv / job CSV"]
 ```
 
-The diagram shows component relationships, not an executable end-to-end CLI.
+The diagram shows component relationships. Lesson 27 adds an executable snapshot
+CLI around this pipeline; live Adzuna retrieval remains a separate smoke command.
 Lesson 22 connects prepared postings to processing through `run_postings_batch()`;
 it returns outcomes and `summarize_batch(outcomes)`. Lesson 23 adds the record-level
 export boundary; Lesson 24 composes both CSV exports in `run_offline_workflow()`; Lesson 26 adds
@@ -752,15 +754,159 @@ block socket connections. Full offline rerun: 293 passed, 2 credential-dependent
 OpenAI tests skipped, 1 known xfailed. The user-verified full run was 295 passed,
 1 xfailed in 7.81s; the two skipped live tests explain the difference.
 
+## Lesson 27 — Snapshot CLI with explicit agent processing
+
+The entry point is `python -m uk_job_market_agents`: `__main__.py` exits with
+`cli.main()`'s status. The CLI parses arguments, selects `process_jobs` through
+`processing/processor_factory.py`, and calls `run_snapshot_workflow()`.
+That reuses loading, adaptation/deduplication, sequential job orchestration,
+summary calculation and both CSV writers. The CLI prints Total, Processed,
+Review required and Failed counts after successful export.
+
+**Saved input does not mean network-free processing.** The only CLI mode is
+explicit `--mode agent`; there is no default, dry-run or rules-only mode.
+It warns on stderr that processing may incur API costs, without a confirmation
+prompt. Python callers can inject `main(argv, processor=...)` for offline tests;
+the parser still requires mode, but injection bypasses factory selection and
+the credential check and cost warning. Injection does not enforce network isolation.
+
+### Usage and argument contract
+
+From the repository root, with project dependencies installed in `.venv`:
+
+```bash
+PYTHONPATH=src .venv/bin/python -m uk_job_market_agents --help
+```
+
+The following processes an existing local snapshot using the live LLM path.
+First configure credentials as described below and choose the correct collection
+time; the timestamp shown is an example, not a claim about the snapshot's capture.
+The output parent must already exist (this example creates it):
+
+```bash
+mkdir -p data/raw/lesson27
+PYTHONPATH=src .venv/bin/python -m uk_job_market_agents \
+  --snapshot data/raw/adzuna_sample.json \
+  --collected-at 2026-11-04T09:00:00+00:00 \
+  --jobs-out data/raw/lesson27/jobs.csv \
+  --summary-out data/raw/lesson27/summary.csv \
+  --mode agent
+```
+
+This command was not run against live services during documentation close-out.
+`data/raw/` is ignored; a fresh checkout does not include the input snapshot.
+
+| Argument | Contract |
+| --- | --- |
+| `--snapshot` | Required path to UTF-8 JSON: a top-level object with a `results` list of objects. Each advert must pass adapter/model validation. |
+| `--collected-at` | Required timezone-aware ISO timestamp parsed by `datetime.fromisoformat`; use an explicit offset such as `+00:00` for Python 3.10 compatibility. Naive timestamps are rejected, even for empty input. |
+| `--jobs-out` | Required job CSV path; parent must exist. |
+| `--summary-out` | Required summary CSV path; parent must exist and destination must differ from jobs output, including existing file aliases. |
+| `--mode agent` | Required; `agent` is the only accepted value and selects the real LLM batch processor. |
+| `-h`, `--help` | Display help and exit without processing. |
+
+Paths are relative to the current directory unless absolute. Input is adapted
+before first-seen deduplication by `(source, source_id)`; an invalid advert
+aborts preparation rather than becoming an individual failed outcome. Empty
+`results` is valid and produces a header-only jobs CSV and a zero-count summary,
+with no model calls.
+
+### Credentials, costs and failure visibility
+
+Classification, adjudication and salary extraction construct `OpenAI()`
+directly. The normal credential path is `OPENAI_API_KEY` in the process
+environment. Neither the CLI nor these clients loads `secrets.json` or a
+`.env` file. Keep credentials in local secret storage and inject them without
+putting their values in commands, logs or version control. Adzuna credentials
+are not needed to process a saved response.
+
+The installed SDK also reads environment configuration such as
+`OPENAI_ORG_ID`, `OPENAI_PROJECT_ID` and `OPENAI_BASE_URL`; review these before
+a live run. It recognizes `OPENAI_ADMIN_KEY` too, but that is not a substitute
+for configuring the normal inference key. The application does not expose
+credential, endpoint, model, timeout or retry flags. All three agent modules
+currently hard-code `gpt-5.6-luna`; availability/access was not verified live.
+
+Each valid unique posting attempts LLM classification; disagreements can trigger
+separate role and work-pattern adjudication calls. Adzuna descriptions remain
+`EXCERPT`, so normal orchestration skips salary extraction even when approved.
+There is no CLI spending cap or job limit. SDK retries may occur even though the
+application has no batch retry policy. Costs depend on calls and tokens; no
+fixed cost estimate or live pricing claim is made here.
+
+**Missing credentials fail fast.** Without an injected processor, agent mode
+requires a non-empty `OPENAI_API_KEY` before processor selection or snapshot
+execution. A missing key prints an error and exits 2 without processing or
+exports. This checks presence only, not key validity. Invalid credentials,
+unavailable models or service failures can still produce failed job outcomes.
+Their error details remain in `BatchProcessingOutcome.error`; neither CSV nor
+the CLI summary includes those details. Python workflow callers can retain
+outcomes for diagnostics. An empty run does not validate credentials.
+
+| Exit code | Meaning |
+| --- | --- |
+| `0` | Exports completed with no failed jobs, including empty or review-only batches; also successful help. It does not imply every job was approved or salary-verified. |
+| `1` | Exports completed but at least one job failed, possibly all jobs. |
+| `2` | Argument parsing error, missing agent credentials, colliding resolved input/output paths, or a workflow `OSError` / `ValueError` (including malformed JSON and model validation). Parser errors show usage; handled workflow errors print `Execution error: ...` to stderr without a traceback. |
+
+These codes cover handled paths. Unexpected exceptions outside that catch can
+still propagate with a traceback; processor selection occurs before the catch.
+The snapshot loader rejects missing `id`, `title` or `description` with a
+`ValueError` naming the zero-based result index and missing fields. The CLI
+returns 2 without a traceback, processing or exports, even if earlier adverts
+were valid. Present fields still pass through existing adapter/model validation;
+this is not comprehensive validation of every malformed optional field type.
+
+### Export and snapshot limitations
+
+The jobs export retains the existing 14-column selected-provenance schema;
+summary CSV has total/processed/review_required/failed and three rates.
+Existing destinations are overwritten, jobs first and summary second, without
+atomic publication. A later write failure can leave a completed jobs file or
+partial output; output-parent checks happen at write time, potentially after
+paid processing. The CLI rejects resolved-path collisions among input and both
+outputs before processor selection, including symlinks. The workflow additionally
+rejects output-to-output hard links. Input-to-output hard links are not detected;
+keep these distinct too.
+
+The supplied collection time is preserved; original capture time cannot be
+recovered from this response format. Excerpts are not full advert evidence.
+Provider salary bounds/prediction flags never fill analytical salary fields,
+and empty analytical salaries do not establish non-disclosure. Failure details,
+raw advert text and salary assessments are not included in the jobs CSV.
+Live ingestion, persistent history, concurrency and end-to-end live validation
+remain outside this lesson.
+
+### Verification (4 November 2026)
+
+Latest offline close-out: **46 focused passed in 0.58s**; full suite
+**323 passed, 2 skipped, 1 xfailed in 0.72s**. The two credential-dependent
+live tests were skipped; the existing remote-first/mandatory-office rule remains
+xfailed. Socket connections were
+blocked and API credentials removed during both runs; no live calls were made.
+Three new regression cases cover missing `id`, `title` and `description` after
+a valid advert, asserting exit 2, precise stderr, no processor call, no exports
+and unchanged input. Two factory/warning unit tests now set a dummy key locally
+to exercise their intended paths independently of the user's credentials.
+Existing credential and collision tests pass. Both staged and unstaged diff
+whitespace checks pass; existing staged content was preserved.
+
+```bash
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q tests/test_cli.py tests/test_cli_entrypoint.py tests/test_cli_integration.py tests/test_processor_factory.py tests/ingestion/test_snapshot_loader.py tests/ingestion/test_snapshot_pipeline.py tests/ingestion/test_snapshot_execution.py
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
+git diff --check
+git diff --cached --check
+```
+
 ## Current Limitations
 
-- Batch processing is sequential, without concurrency, retries or
+- Batch processing is sequential, without concurrency, application-level retries or
   persistent processing history.
 - The project currently relies on a small collection of example
   job advertisements.
 - Adzuna retrieval, snapshot replay and prepared-posting batch integration exist,
-  but a live end-to-end LLM workflow has not been verified. No executable CLI
-  connects all retrieval, processing, summary and export components.
+  but a live end-to-end LLM workflow has not been verified. The Lesson 27 CLI
+  connects saved snapshots to processing and exports; retrieval stays separate.
 - Adzuna descriptions remain excerpts, and provider salary metadata is not
   verified salary evidence. The smoke replay assigns current time; the Lesson 26
   API uses the caller-supplied timestamp and cannot recover an unknown fetch time.
@@ -771,8 +917,8 @@ OpenAI tests skipped, 1 known xfailed. The user-verified full run was 295 passed
 
 ## Planned Development
 
-1. Review the uncommitted Lesson 26 snapshot API and documentation; staging and committing remain separate steps.
-2. Agree the next lesson after review; retain explicit processor policy, the completeness gate and provider/verified salary separation.
+1. Review Lesson 27 CLI and documentation; commit only when requested.
+2. Lesson 28: explicitly authorize a controlled live run on a small saved snapshot after checking credentials, model access, budget and output paths; inspect statuses and retain failure diagnostics. Preserve the completeness gate and provider/verified salary separation.
 3. Develop analysis-ready datasets with appropriate provenance.
 4. Build operational monitoring and job-market dashboards.
 5. Investigate processing retries, persistence and concurrency where justified.

@@ -25,4 +25,15 @@ def load_adzuna_snapshot(path: Path) -> list[dict[str, Any]]:
             "Invalid Adzuna snapshot: results must contain objects"
         )
 
+    for index, advertisement in enumerate(results):
+        missing = [
+            field for field in ("id", "title", "description")
+            if field not in advertisement
+        ]
+        if missing:
+            raise ValueError(
+                f"Invalid Adzuna snapshot: results[{index}] missing required "
+                f"advert fields: {', '.join(missing)}"
+            )
+
     return results

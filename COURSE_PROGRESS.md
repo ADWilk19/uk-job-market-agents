@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 3 November 2026
+**Last updated:** 4 November 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -80,7 +80,9 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 23 — Provenance-aware export | Committed at `dc2eeb6` | Typed rows, stable CSV and 15 focused tests. |
 | Lesson 24 — End-to-End Offline Workflow | Committed at `3c4b8df` | Required injected processor, two existing CSV writers, 12 new cases. |
 | Lesson 25 — Processing policy | Committed at `bfac158`; integrated into local `main` | COMPLETE-only salary extraction; skipped assessments and provider predictions remain distinct. |
-| Lesson 26 — Snapshot-backed offline execution | Implemented and tested locally; uncommitted | Three snapshot modules and three test files; 16 snapshot cases pass. |
+| Lesson 26 — Snapshot-backed offline execution | Committed at `507f7b1` | Three snapshot modules and three test files; 16 snapshot cases pass. |
+| Lesson 27 — Snapshot CLI | Implemented and tested; uncommitted | Explicit agent mode, exit codes, CSV exports and documented operational limits. |
+| Lesson 28 — Controlled live run | Planned; not authorized by this close-out | Small snapshot, credential/model checks, bounded scope and diagnostic review. |
 
 ### Domain vocabulary
 
@@ -140,13 +142,13 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/23-provenance-aware-export` | Provenance-aware analytical export; commit `dc2eeb6` |
 | `lesson/24-offline-workflow` | Offline processing/export composition; commit `3c4b8df` |
 | `lesson/25-processing-policy` | COMPLETE-only salary extraction; commit `bfac158` |
-| `lesson/26-snapshot-execution` | Snapshot-backed offline execution; based on `bfac158`, implementation uncommitted |
+| `lesson/26-snapshot-execution` | Snapshot-backed offline execution; committed at `507f7b1` |
 
-**Current working branch:** `lesson/26-snapshot-execution`
+**Current working branch:** `lesson/27-offline-snapshot-cli`
 
-**Lesson 26 baseline:** `bfac158` (Lesson 25), also local `main`, verified
-3 November 2026. The three snapshot modules and their three tests are untracked.
-Only README and this progress document are modified by this close-out.
+**Lesson 27 baseline:** `507f7b1` (Lesson 26), verified 4 November 2026.
+Seven CLI source/test files were already staged on arrival. This close-out adds
+unstaged documentation, parser-help and test changes; the index is preserved.
 
 **Lesson 25 baseline:** `3c4b8df` (Lesson 24), verified 2 November 2026.
 
@@ -159,7 +161,7 @@ Lesson 20 ingestion and deduplication are committed at `a3068b1`, the historical
 Lesson 20 baseline. Lesson 21 is committed at `28fd5dc`.
 Lesson 22 is committed at `9a672ee`; Lesson 23 is committed at `dc2eeb6`.
 Lesson 24 is committed at `3c4b8df`; Lesson 25 is committed at `bfac158`.
-Lesson 26 remains uncommitted;
+Lesson 26 is committed at `507f7b1`; Lesson 27 remains uncommitted;
 this documentation close-out performs no staging, commit, merge or push.
 
 ### Testing history
@@ -199,22 +201,29 @@ git status --short --branch
 git log -5 --oneline
 git branch --all
 python --version
-python -m pytest -q
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY python -m pytest -q -ra
 ```
 
-Review the README's Lesson 26 API example and the six untracked source/test files
-alongside the documentation diff before staging or committing. Confirm branch and
-commit state with Git, keep credentials and `data/raw/` untracked, and use
-offline replay for repeatable ingestion checks. Merge only when requested.
+Review the README's Lesson 27 CLI contract and both staged and unstaged diffs.
+Keep credentials, raw snapshots and local exports untracked. Do not run agent
+mode until live processing is explicitly authorized. Commit/merge only when requested.
 
 ## 6. Proposed next milestones
 
-**Next development objective:** Review Lesson 26's snapshot-backed Python API
-and agree the next teaching exercise. The API is implemented; a CLI is not.
-Preserve the COMPLETE-only extraction policy and provider/verified salary
-separation. Dashboards, retries, concurrency and persistent history remain later
-work; source-qualified outcome identity is relevant if multi-provider batches
-are introduced. Future lessons retain the teaching agreement.
+**Next development objective: Lesson 28 — Controlled live run.** After reviewing
+Lesson 27, agree a small snapshot subset and spending allowance, verify the
+environment credential path, model/endpoint configuration and writable distinct
+output paths, then explicitly authorize the run. The CLI has no job limit or
+spending cap: constrain the input beforehand. Retain outcomes through the Python
+workflow if diagnostics are needed, because CLI/CSV output omits failure errors.
+Record input count, collection-time convention, exit code, status counts, API
+usage/cost evidence and CSV inspection. Treat all-failed output as a failed
+processing run, not success merely because files exist. Do not promote provider
+salary metadata or excerpts to verified/full evidence. No live run occurred
+during Lesson 27 documentation work.
+
+Dashboards, retries, concurrency, persistent history and broader refactors
+remain deferred. Future lessons retain the teaching agreement.
 
 ## 7. Working agreement for future lessons
 
@@ -877,9 +886,9 @@ Persistence, concurrency and expanded export schemas remain deferred.
 
 ### Lesson 26 — Snapshot-backed Offline Execution
 
-**Date / state:** 3 November 2026; `lesson/26-snapshot-execution` at `bfac158`.
-Implementation and tests remain six untracked files; documentation is uncommitted.
-No staging, commit, push or merge was performed during this close-out.
+**Date / state:** Originally closed out 3 November 2026 with uncommitted files;
+subsequently committed at `507f7b1` (verified 4 November at Lesson 27 close-out).
+The original documentation session performed no staging, commit, push or merge.
 
 **Learned:** Compose existing boundaries rather than duplicate validation or
 export logic. Structural JSON validation precedes advertisement adaptation and
@@ -937,8 +946,72 @@ integration tests skipped. The known remote-first / mandatory office-attendance
 rule remains xfailed. Documentation checks and the synthetic README example
 passed; `git diff --check` is clean.
 
-**Next:** Review Lesson 26 before any separately requested staging or commit;
-agree the next lesson without assuming a CLI or live processing is required.
+**Next at that milestone:** Snapshot CLI, now implemented in Lesson 27 below.
+
+### Lesson 27 — Snapshot CLI with Explicit Agent Mode
+
+**Date / branch / state:** 4 November 2026; `lesson/27-offline-snapshot-cli`
+at `507f7b1`. Seven implementation/test files already staged; documentation
+and close-out refinements remain unstaged. No staging, commit, push or merge
+performed by this close-out.
+
+**Learned / implementation:** A thin CLI composes existing workflow boundaries:
+`__main__.py` → `cli.main()` → `create_processor("agent")` → `process_jobs`
+via `run_snapshot_workflow()`. Loading, adaptation, deduplication, processing,
+summary and CSV contracts are reused. All five arguments are required, including
+explicit mode and timezone-aware collection time. Agent mode warns about API
+costs; Python processor injection supports offline tests. Help now displays
+`python -m uk_job_market_agents` instead of the entry-point filename.
+
+**Files:** Existing staged additions are `src/uk_job_market_agents/__main__.py`,
+`cli.py`, `processing/processor_factory.py`, and `tests/test_cli.py`,
+`test_cli_entrypoint.py`, `test_cli_integration.py`, `test_processor_factory.py`.
+Close-out changes README, this handover, the parser's cosmetic `prog`, the
+existing help test, credential/path safeguards and their tests. Final close-out
+adds required advert-field validation in the snapshot loader and three CLI
+integration cases; two unit tests use local dummy credentials for isolation.
+
+**Decisions / concrete findings:**
+
+- Saved snapshot means offline ingestion only; agent processing invokes LLMs.
+  No dry-run, rules-only mode, spending cap or CLI job limit is implemented.
+- Real agents call `OpenAI()`, normally reading `OPENAI_API_KEY` from the
+  environment; neither `secrets.json` nor `.env` is automatically loaded.
+  SDK organization/project/base-URL configuration can also affect requests.
+  The hard-coded model is `gpt-5.6-luna`; live access was not checked.
+- Missing `OPENAI_API_KEY` now fails before factory selection or processing,
+  returning 2 without exports. Injected processors bypass this presence check;
+  key validity is not verified. Failure details for processing errors remain
+  in Python outcomes and are omitted from CLI output and CSVs.
+- Exit 0 means no failed jobs after export (including review-only or empty
+  batches); exit 1 means failed jobs after export; exit 2 covers argument errors,
+  missing credentials, resolved-path collisions and handled workflow
+  OSError/ValueError. Missing `id`, `title` or `description` now raises a clear
+  snapshot ValueError with a zero-based result index before any processing or
+  exports, rather than an uncaught KeyError. Other unexpected errors can still
+  propagate; this is a minimal required-field safeguard.
+- Resolved paths for input and both outputs must differ, including symlinks.
+  The workflow also detects output-to-output hard links; input-to-output hard
+  links remain a limitation. Outputs overwrite non-atomically; parents must
+  exist. A write failure can occur after paid processing and leave partial exports.
+- Adzuna excerpts skip salary extraction under the existing policy; provider
+  salaries never become analytical salary fallback. Classification/adjudication
+  can still incur costs. No live API calls were made.
+
+**Validation:** Latest network-blocked run with API credentials removed:
+**46 focused passed in 0.58s**; full offline suite **323 passed, 2 skipped,
+1 xfailed in 0.72s**. The two live OpenAI tests were skipped. The expected
+failure remains remote-first versus mandatory office attendance. Three new
+missing-field cases assert exit 2, exact stderr without traceback, no processing
+or exports and unchanged input, including a valid earlier advert. Factory and
+warning unit tests set dummy credentials locally. Existing credential/path
+regressions pass. Staged and unstaged whitespace checks pass; the staged diff
+is unchanged from the start of this close-out. No live APIs were called.
+
+**Next:** Review Lesson 27 for a separately authorized commit. Lesson 28's
+controlled live run still requires separate authorization. Diagnostic output,
+input/output hard-link checks and broader malformed-field validation remain
+possible follow-ups, outside this narrow safeguard.
 
 ## 10. Open housekeeping items
 
@@ -985,6 +1058,9 @@ agree the next lesson without assuming a CLI or live processing is required.
 - [x] Document Lesson 25 behavior, trade-offs, tests and design decisions.
 - [x] Verify Lesson 25 commit `bfac158` and local `main` at that commit.
 - [x] Implement and test the Lesson 26 snapshot-backed offline Python API.
-- [ ] Review and commit Lesson 26 when requested.
+- [x] Verify Lesson 26 commit `507f7b1`.
+- [x] Document and verify Lesson 27 CLI and missing-credential behavior offline.
+- [ ] Review and commit Lesson 27 when requested.
+- [ ] Lesson 28: authorize and record a controlled live run.
 - [x] Implement Lesson 23 selected provenance-aware record-level export.
 - [ ] Extend audit fields only when a downstream use case requires them.
