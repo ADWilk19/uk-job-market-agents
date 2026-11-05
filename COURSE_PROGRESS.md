@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 4 November 2026
+**Last updated:** 5 November 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -1013,6 +1013,33 @@ controlled live run still requires separate authorization. Diagnostic output,
 input/output hard-link checks and broader malformed-field validation remain
 possible follow-ups, outside this narrow safeguard.
 
+### Lesson 28 — Controlled Live Adzuna Run
+
+**Date / branch:** 5 November 2026; `lesson/28-controlled-live-run`.
+
+**Run / results (user-verified):** Fetched 5 Adzuna `data engineer` ads;
+5 unique postings validated. Saved snapshot: `data/raw/adzuna_lesson28.json`.
+Collection time `2026-11-05T09:42:31+00:00` is approximate, recorded after
+fetching. Agent CLI outcomes: **4 processed, 1 review required, 0 failed**;
+the review concerns a work-pattern disagreement. Provenance was preserved.
+
+**Policy / limits:** All descriptions are excerpts. Under Lesson 25 policy,
+provider salary metadata was retained but verified analytical salary fields
+remained empty. This small snapshot is concentrated in Northern Ireland and
+is not representative of the wider job market.
+
+**Exports / learned:** The first attempt failed because `data/processed/` was
+absent. A later run succeeded, generating jobs at `data/raw/lesson28_jobs.csv`
+and summary at `data/processed/lesson28_summary.csv`. The CLI does not create
+missing parent directories; prepare output directories before running.
+
+**Local hygiene / validation:** Existing local `.gitignore` changes exclude
+`.env`, `.env.local`, `.vscode/` and `data/processed/`; `data/raw/` was already
+ignored. Raw snapshots, credentials and generated CSVs remain local and must
+not be committed. This close-out changes documentation only; no live calls or
+application tests were rerun. Documentation diff and whitespace checks passed.
+No staging, commit, push or merge performed.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.
@@ -1060,7 +1087,7 @@ possible follow-ups, outside this narrow safeguard.
 - [x] Implement and test the Lesson 26 snapshot-backed offline Python API.
 - [x] Verify Lesson 26 commit `507f7b1`.
 - [x] Document and verify Lesson 27 CLI and missing-credential behavior offline.
-- [ ] Review and commit Lesson 27 when requested.
-- [ ] Lesson 28: authorize and record a controlled live run.
+- [x] Review and commit Lesson 27 when requested.
+- [x] Lesson 28: complete and record the authorized controlled live run.
 - [x] Implement Lesson 23 selected provenance-aware record-level export.
 - [ ] Extend audit fields only when a downstream use case requires them.

@@ -11,3 +11,13 @@ data/evaluation_history.json
 
 # Local API response snapshots
 data/raw/
+
+# Local API credentials
+.env
+.env.local
+
+# Local editor settings
+.vscode/
+
+# Generated analytical exports
+data/processed/
