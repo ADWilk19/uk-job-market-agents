@@ -523,9 +523,9 @@ env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pyt
 env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
 ```
 
-Current branch: `lesson/26-snapshot-execution`; baseline: Lesson 25 commit
-`bfac158` (also local `main`, verified 3 November 2026). Lesson 26 source/tests
-remain untracked; its documentation changes are uncommitted.
+Current branch: `lesson/29-data-quality-evaluation` (verified 6 November 2026).
+Lesson 29 implementation and tests are untracked; this documentation update
+does not stage or commit them. See Lesson 29 below for user-verified results.
 
 ## Lesson 24 — End-to-End Offline Workflow
 
@@ -898,6 +898,62 @@ git diff --check
 git diff --cached --check
 ```
 
+## Lesson 29 — Deterministic data quality evaluation
+
+`analytics/data_quality.py` provides
+`summarize_data_quality(rows: Sequence[JobExportRow]) -> DataQualitySummary`.
+It calculates coverage from typed export rows without LLM calls, CSV parsing,
+network access or interpretation of advertisement content. CSV loading and
+conversion of empty cells to `None` belong upstream of metric calculation.
+
+Every metric stores `populated` (numerator), `total` (denominator: all input
+rows, including review/failed rows) and `rate` (`populated / total`). Empty
+input returns zero counts and `rate=None` (JSON `null`): coverage is undefined,
+not zero. This differs from the existing empty-batch operational rates.
+
+| Metric | Row counts as populated when | User-verified Lesson 28 CSV: populated / total | Rate |
+| --- | --- | --- | --- |
+| `company_coverage` | `company_name` contains non-whitespace characters | 5/5 | 1.0 |
+| `approved_role_coverage` | `role_family` is not `None` | 4/5 | 0.8 |
+| `known_work_pattern_coverage` | `work_pattern` is `REMOTE`, `HYBRID` or `ONSITE`; `UNKNOWN` and `None` are excluded | 3/5 | 0.6 |
+| `provider_salary_coverage` | Both `source_salary_min` and `source_salary_max` are not `None` | 5/5 | 1.0 |
+| `verified_salary_coverage` | Both analytical `salary_min` and `salary_max` are not `None` | 0/5 | 0.0 |
+| `complete_description_coverage` | `description_completeness` is `COMPLETE` | 0/5 | 0.0 |
+
+**Pydantic invariants:** `CoverageMetric` requires non-negative counts,
+`populated <= total`, and a supplied numeric rate between 0 and 1. For a positive
+denominator, the rate must be present and equal `populated / total` within
+`1e-9`; for a zero denominator, it must be `None`. `DataQualitySummary.total`
+is non-negative and every metric denominator must equal that summary total.
+
+**Validation (user-verified, 6 November 2026):** **7 focused passed**;
+full suite **332 passed, 1 known xfailed in 5.82s**. The expected failure is
+the remote-first / mandatory office-attendance classification-rule case.
+`tests/analytics/test_data_quality.py` covers the five-row characteristics,
+empty input, missing/partial fields, UNKNOWN exclusion, invalid counts/rates,
+rate consistency and summary denominator consistency. The live Lesson 28
+five-row CSV produced the coverage values above. These are supplied results;
+application tests and live processing were not rerun for this documentation update.
+
+```bash
+python -m pytest tests/analytics/test_data_quality.py -v
+python -m pytest -q -ra
+git diff --check
+```
+
+**Limitations:** Coverage is not accuracy, correctness or representativeness.
+This small sample is concentrated in Northern Ireland and cannot characterise
+the wider UK job market. The function trusts existing fields: approved-role
+coverage does not recheck approval, and verified-salary coverage does not
+reverify salary evidence. Those meanings depend on the upstream export and
+processing contracts; manually constructed rows do not prove either. Provider
+coverage includes predicted values and never supplies a verified-salary fallback.
+Both salary bounds are required; one populated bound does not count. Complete
+description coverage trusts the label without inspecting text. Empty analytical
+salary fields do not establish non-disclosure: all five descriptions are excerpts,
+so the normal processing policy skips salary extraction. This lesson adds no
+CLI integration, CSV reader/writer or new processing policy.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or
@@ -905,8 +961,8 @@ git diff --cached --check
 - The project currently relies on a small collection of example
   job advertisements.
 - Adzuna retrieval, snapshot replay and prepared-posting batch integration exist,
-  but a live end-to-end LLM workflow has not been verified. The Lesson 27 CLI
-  connects saved snapshots to processing and exports; retrieval stays separate.
+  with a user-verified five-advert live run recorded in Lesson 28. That small
+  run does not establish general reliability. Retrieval stays separate from the CLI.
 - Adzuna descriptions remain excerpts, and provider salary metadata is not
   verified salary evidence. The smoke replay assigns current time; the Lesson 26
   API uses the caller-supplied timestamp and cannot recover an unknown fetch time.
@@ -917,8 +973,8 @@ git diff --cached --check
 
 ## Planned Development
 
-1. Review Lesson 27 CLI and documentation; commit only when requested.
-2. Lesson 28: explicitly authorize a controlled live run on a small saved snapshot after checking credentials, model access, budget and output paths; inspect statuses and retain failure diagnostics. Preserve the completeness gate and provider/verified salary separation.
+1. Review Lesson 29 implementation, tests and documentation; commit only when requested.
+2. Use the recorded Lesson 28 run and Lesson 29 coverage as a limited baseline; agree the next lesson before expanding scope.
 3. Develop analysis-ready datasets with appropriate provenance.
 4. Build operational monitoring and job-market dashboards.
 5. Investigate processing retries, persistence and concurrency where justified.

@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 5 November 2026
+**Last updated:** 6 November 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -82,7 +82,8 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 25 — Processing policy | Committed at `bfac158`; integrated into local `main` | COMPLETE-only salary extraction; skipped assessments and provider predictions remain distinct. |
 | Lesson 26 — Snapshot-backed offline execution | Committed at `507f7b1` | Three snapshot modules and three test files; 16 snapshot cases pass. |
 | Lesson 27 — Snapshot CLI | Implemented and tested; uncommitted | Explicit agent mode, exit codes, CSV exports and documented operational limits. |
-| Lesson 28 — Controlled live run | Planned; not authorized by this close-out | Small snapshot, credential/model checks, bounded scope and diagnostic review. |
+| Lesson 28 — Controlled live run | Completed; user-verified | Five ads; 4 processed, 1 review required, 0 failed; see handover below. |
+| Lesson 29 — Deterministic data quality evaluation | Implemented and tested; uncommitted | Six coverage metrics, validated counts/rates and consistent denominators; 7 focused passed; full 332 passed, 1 known xfailed. |
 
 ### Domain vocabulary
 
@@ -144,7 +145,8 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/25-processing-policy` | COMPLETE-only salary extraction; commit `bfac158` |
 | `lesson/26-snapshot-execution` | Snapshot-backed offline execution; committed at `507f7b1` |
 
-**Current working branch:** `lesson/27-offline-snapshot-cli`
+**Current working branch:** `lesson/29-data-quality-evaluation` (verified 6 November 2026).
+Lesson 29 source and test files are untracked; this update changes documentation only.
 
 **Lesson 27 baseline:** `507f7b1` (Lesson 26), verified 4 November 2026.
 Seven CLI source/test files were already staged on arrival. This close-out adds
@@ -210,17 +212,11 @@ mode until live processing is explicitly authorized. Commit/merge only when requ
 
 ## 6. Proposed next milestones
 
-**Next development objective: Lesson 28 — Controlled live run.** After reviewing
-Lesson 27, agree a small snapshot subset and spending allowance, verify the
-environment credential path, model/endpoint configuration and writable distinct
-output paths, then explicitly authorize the run. The CLI has no job limit or
-spending cap: constrain the input beforehand. Retain outcomes through the Python
-workflow if diagnostics are needed, because CLI/CSV output omits failure errors.
-Record input count, collection-time convention, exit code, status counts, API
-usage/cost evidence and CSV inspection. Treat all-failed output as a failed
-processing run, not success merely because files exist. Do not promote provider
-salary metadata or excerpts to verified/full evidence. No live run occurred
-during Lesson 27 documentation work.
+**Current milestone: Lesson 29 — Deterministic data quality evaluation.**
+Lesson 28 completed the controlled five-advert live run; Lesson 29 measures
+coverage of its export. Review the implementation, tests and documentation
+before any separately requested commit. Agree the next lesson without treating
+this small sample as an accuracy benchmark or representative market dataset.
 
 Dashboards, retries, concurrency, persistent history and broader refactors
 remain deferred. Future lessons retain the teaching agreement.
@@ -1040,6 +1036,57 @@ not be committed. This close-out changes documentation only; no live calls or
 application tests were rerun. Documentation diff and whitespace checks passed.
 No staging, commit, push or merge performed.
 
+### Lesson 29 — Deterministic Data Quality Evaluation
+
+**Date / branch / state:** 6 November 2026;
+`lesson/29-data-quality-evaluation`. Implementation and tests are untracked.
+This close-out updates only README and this handover; no commit, push or merge.
+
+**Learned / implementation:** `analytics/data_quality.py` introduces
+`CoverageMetric`, `DataQualitySummary` and `summarize_data_quality()` over a
+`Sequence[JobExportRow]`. Six deterministic coverage metrics distinguish field
+availability from correctness. No LLM calls or CSV parsing occur in metric
+calculation; loading CSV cells and converting empty strings to `None` are
+upstream concerns. No CLI integration or processing-policy change is introduced.
+
+Each metric records `populated` (numerator), `total` (all supplied rows) and
+`rate = populated / total`. Empty input gives zero counts and `None` rates,
+not 0% coverage. Pydantic enforces non-negative counts, numerator no larger than
+denominator, numeric rates in [0, 1], and agreement with the ratio within `1e-9`.
+A positive denominator requires a rate; a zero denominator requires `None`.
+The summary total is non-negative and every metric denominator must match it.
+
+**Live Lesson 28 CSV coverage (user-verified):**
+
+| Metric | Populated rule | Numerator / denominator | Rate |
+| --- | --- | --- | --- |
+| Company | Nonblank, non-whitespace company name | 5/5 | 1.0 |
+| Approved role | `role_family` is not `None` | 4/5 | 0.8 |
+| Known work pattern | REMOTE, HYBRID or ONSITE; exclude UNKNOWN and `None` | 3/5 | 0.6 |
+| Provider salary | Both `source_salary_min` and `source_salary_max` present | 5/5 | 1.0 |
+| Verified salary | Both analytical `salary_min` and `salary_max` present | 0/5 | 0.0 |
+| Complete description | `DescriptionCompleteness.COMPLETE` | 0/5 | 0.0 |
+
+**Validation (user-verified):** **7 focused passed**;
+full suite **332 passed, 1 known xfailed in 5.82s**. The known expected failure
+is the remote-first / mandatory office-attendance classification-rule case.
+Inspected `tests/analytics/test_data_quality.py`: seven tests exercise the
+five-row characteristics, empty input, missing/partial values, UNKNOWN exclusion,
+invalid counts/rates, rate consistency and summary denominator consistency.
+These test and live CSV results were supplied by the user, not rerun during
+this documentation update. README records the commands.
+
+**Limitations / interpretation:** The five-row sample is small and concentrated
+in Northern Ireland, not representative of the UK market. Coverage is not
+accuracy. Role and verified-salary labels rely on upstream export/processing
+contracts: the function checks populated fields, not approval or salary evidence.
+Manually constructed rows cannot prove verification. Provider bounds may be
+predicted and never fill verified salary fields; a single bound is insufficient
+for either salary metric. Description completeness trusts the existing label.
+All five descriptions are excerpts, so normal policy skips salary extraction;
+zero verified-salary coverage does not establish non-disclosure. No new data
+collection, LLM evaluation or broader market claims follow from these results.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.
@@ -1091,3 +1138,6 @@ No staging, commit, push or merge performed.
 - [x] Lesson 28: complete and record the authorized controlled live run.
 - [x] Implement Lesson 23 selected provenance-aware record-level export.
 - [ ] Extend audit fields only when a downstream use case requires them.
+
+- [x] Lesson 29: implement deterministic coverage metrics and record user-verified tests and live CSV coverage.
+- [ ] Review Lesson 29 for a separately requested commit.
