@@ -523,9 +523,10 @@ env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pyt
 env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
 ```
 
-Current branch: `lesson/29-data-quality-evaluation` (verified 6 November 2026).
-Lesson 29 implementation and tests are untracked; this documentation update
-does not stage or commit them. See Lesson 29 below for user-verified results.
+Current branch: `lesson/30-analysis-ready-dataset` (verified 9 November 2026).
+Lesson 29 is committed at `4315400`. Lesson 30 implementation and tests remain
+untracked; this review updates documentation without staging or committing.
+See Lesson 30 below for fresh offline validation.
 
 ## Lesson 24 — End-to-End Offline Workflow
 
@@ -954,6 +955,85 @@ salary fields do not establish non-disclosure: all five descriptions are excerpt
 so the normal processing policy skips salary extraction. This lesson adds no
 CLI integration, CSV reader/writer or new processing policy.
 
+## Lesson 30 — Analysis-ready dataset selection
+
+`analytics/analytical_dataset.py` filters a `Sequence[JobExportRow]` and reports
+sample sizes using deterministic Python. LLM interpretation, classification
+approval and salary evidence verification remain upstream; these helpers do
+not call agents, read CSVs, fetch data or write exports.
+
+| Helper | Eligibility / result |
+| --- | --- |
+| `select_role_eligible_rows(rows)` | `processing_status == ProcessingStatus.PROCESSED` and `role_family is not None` |
+| `select_salary_eligible_rows(rows)` | `processing_status == ProcessingStatus.PROCESSED` and both analytical `salary_min` and `salary_max` are not `None` |
+| `summarize_analytical_samples(rows)` | `AnalyticalSampleSummary` with `total`, `role_eligible` and `salary_eligible` |
+
+The selectors return new lists in input order without mutating the input.
+They retain the original row objects, rather than making copies, and do not
+deduplicate: repeated rows count repeatedly. Role and salary samples are
+independent, potentially overlapping subsets, not a partition. Salary selection
+does not require a role; role selection does not require salary or a known work
+pattern. Neither selector adds a description-completeness check.
+
+Each eligibility metric reuses `CoverageMetric`: `populated` is the selected
+count, `total` is **all supplied rows**, including failed, review-required and
+missing-field rows, and `rate = populated / total`. Do not pass a filtered sample
+to the summary if the intended denominator is the original export. Empty input
+returns empty selections, zero counts and `rate=None`, not zero percent.
+`AnalyticalSampleSummary` requires non-negative total and matching metric
+denominators; `CoverageMetric` enforces count and rate consistency as in Lesson 29.
+The two eligible counts must not be added to infer a unique eligible population.
+
+```python
+from uk_job_market_agents.analytics.analytical_dataset import (
+    select_role_eligible_rows,
+    select_salary_eligible_rows,
+    summarize_analytical_samples,
+)
+
+# rows is the full typed output of build_job_export_rows(postings, outcomes).
+summary = summarize_analytical_samples(rows)
+role_rows = select_role_eligible_rows(rows)
+salary_rows = select_salary_eligible_rows(rows)
+```
+
+**Trust boundary / limitations:** Unlike Lesson 29's field-coverage metrics,
+these selectors explicitly exclude non-processed rows even if their analytical
+fields are populated. They still trust upstream data: `JobExportRow` contains
+no salary evidence, period, currency or verification status, and does not
+validate positive, ordered salary bounds. Manually constructed or modified rows
+can therefore satisfy selection without proving approval or verification. Use
+the normal `process_job()` → salary assessment → `build_job_export_rows()` path;
+injected processors must uphold those contracts. Normal processing attempts
+salary extraction only for COMPLETE descriptions and retains only verified,
+complete annual GBP bounds. Provider `source_salary_*` values never supply a
+fallback, irrespective of prediction status. Empty analytical salaries may mean
+skipped extraction, review or ineligibility; they do not prove non-disclosure.
+
+Eligibility is not accuracy or representativeness. The five-advert Lesson 28
+sample remains too small and geographically concentrated for UK-market claims.
+This lesson adds no CLI wiring, CSV loader, persistence, deduplication or grouped
+market statistics. For salary comparisons by role, explicitly use the
+intersection of the two eligible samples.
+
+**Review and validation (9 November 2026):** No correctness defect requiring an
+implementation change was found; source and tests were preserved. Eight focused
+tests cover exclusions, empty inputs, input order/non-mutation, full-population
+accounting and denominator validation. Fresh network-blocked runs: **8 focused
+passed**; **338 passed, 2 skipped, 1 known xfailed** for the full suite. API keys
+were removed only from the test process environment; the two live OpenAI tests
+skipped. This explains the difference from the supplied baseline of **340 passed,
+1 xfailed**. The expected failure remains the remote-first / mandatory office
+attendance rule. `git diff --check` passed. No live APIs or saved datasets were used.
+
+```bash
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q tests/analytics/test_analytical_dataset.py
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
+git diff --check
+```
+
+The review also blocked socket connections during both test runs.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or
@@ -973,8 +1053,8 @@ CLI integration, CSV reader/writer or new processing policy.
 
 ## Planned Development
 
-1. Review Lesson 29 implementation, tests and documentation; commit only when requested.
-2. Use the recorded Lesson 28 run and Lesson 29 coverage as a limited baseline; agree the next lesson before expanding scope.
-3. Develop analysis-ready datasets with appropriate provenance.
+1. Review Lesson 30 changes for a separately requested commit.
+2. Proposed next milestone: deterministic grouped role/salary summaries using explicit eligible samples and reported denominators; agree the next lesson scope first.
+3. Retain provenance and sample limitations when extending analysis beyond Lesson 30 selectors.
 4. Build operational monitoring and job-market dashboards.
 5. Investigate processing retries, persistence and concurrency where justified.

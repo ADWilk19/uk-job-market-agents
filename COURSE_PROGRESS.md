@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 6 November 2026
+**Last updated:** 9 November 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -83,7 +83,8 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 26 — Snapshot-backed offline execution | Committed at `507f7b1` | Three snapshot modules and three test files; 16 snapshot cases pass. |
 | Lesson 27 — Snapshot CLI | Implemented and tested; uncommitted | Explicit agent mode, exit codes, CSV exports and documented operational limits. |
 | Lesson 28 — Controlled live run | Completed; user-verified | Five ads; 4 processed, 1 review required, 0 failed; see handover below. |
-| Lesson 29 — Deterministic data quality evaluation | Implemented and tested; uncommitted | Six coverage metrics, validated counts/rates and consistent denominators; 7 focused passed; full 332 passed, 1 known xfailed. |
+| Lesson 29 — Deterministic data quality evaluation | Committed at `4315400` | Six coverage metrics, validated counts/rates and consistent denominators; 7 focused passed; full 332 passed, 1 known xfailed. |
+| Lesson 30 — Analysis-ready dataset | Implemented and reviewed; uncommitted | Independent role/salary selectors and validated sample accounting; 8 focused passed; full offline 338 passed, 2 skipped, 1 known xfailed. |
 
 ### Domain vocabulary
 
@@ -145,8 +146,9 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/25-processing-policy` | COMPLETE-only salary extraction; commit `bfac158` |
 | `lesson/26-snapshot-execution` | Snapshot-backed offline execution; committed at `507f7b1` |
 
-**Current working branch:** `lesson/29-data-quality-evaluation` (verified 6 November 2026).
-Lesson 29 source and test files are untracked; this update changes documentation only.
+**Current working branch:** `lesson/30-analysis-ready-dataset` (verified 9 November 2026).
+HEAD is `4315400` (Lesson 29). Lesson 30 source and test files are untracked;
+this review changes only README and this handover, leaving source/tests intact.
 
 **Lesson 27 baseline:** `507f7b1` (Lesson 26), verified 4 November 2026.
 Seven CLI source/test files were already staged on arrival. This close-out adds
@@ -212,11 +214,13 @@ mode until live processing is explicitly authorized. Commit/merge only when requ
 
 ## 6. Proposed next milestones
 
-**Current milestone: Lesson 29 — Deterministic data quality evaluation.**
-Lesson 28 completed the controlled five-advert live run; Lesson 29 measures
-coverage of its export. Review the implementation, tests and documentation
-before any separately requested commit. Agree the next lesson without treating
-this small sample as an accuracy benchmark or representative market dataset.
+**Current milestone: Lesson 30 — Analysis-ready dataset.**
+Implementation reviewed and tested offline; documentation updated. Commit only
+when separately requested. Proposed next milestone: deterministic grouped role
+and salary summaries over explicitly eligible samples, reporting sample sizes
+and exclusions. Agree scope before implementation; no further live collection
+is needed to define and test that contract. Keep LLM interpretation upstream
+and avoid representative-market claims from the five-advert sample.
 
 Dashboards, retries, concurrency, persistent history and broader refactors
 remain deferred. Future lessons retain the teaching agreement.
@@ -1087,6 +1091,62 @@ All five descriptions are excerpts, so normal policy skips salary extraction;
 zero verified-salary coverage does not establish non-disclosure. No new data
 collection, LLM evaluation or broader market claims follow from these results.
 
+### Lesson 30 — Analysis-ready Dataset
+
+**Date / branch / state:** 9 November 2026;
+`lesson/30-analysis-ready-dataset`, HEAD `4315400` (Lesson 29).
+`src/uk_job_market_agents/analytics/analytical_dataset.py` and
+`tests/analytics/test_analytical_dataset.py` remain untracked and unchanged.
+This review changes only `README.md` and `COURSE_PROGRESS.md`; nothing staged,
+committed, pushed or merged.
+
+**Implementation / learning:** `select_role_eligible_rows()` requires PROCESSED
+status and a non-null role. `select_salary_eligible_rows()` requires PROCESSED
+status and both analytical salary bounds. Both return ordered lists of existing
+row objects without mutating inputs. `summarize_analytical_samples()` builds
+`AnalyticalSampleSummary` using Lesson 29's validated `CoverageMetric`. Each
+numerator is the corresponding selected count; both denominators are the entire
+input, including failed/review rows. Empty inputs give zero counts and undefined
+(`None`) rates. Summary validation rejects mismatched denominators.
+
+**Review / design decisions:** Inspected the selectors/tests, export boundary,
+coverage validation, batch statuses, orchestration, record construction and
+salary assessment/policy/models. No genuine defect requiring code changes was
+found. Preserve the existing implementation rather than duplicate upstream
+verification. Selection and accounting are deterministic; LLM classification
+and extraction remain upstream. Samples are independent and may overlap;
+salary eligibility does not itself require a role. Do not sum sample sizes or
+silently narrow the denominator. No new schema, CLI or processing policy.
+
+**Validation:** Supplied baseline: **8 focused passed; 340 passed, 1 xfailed**.
+Fresh runs using the existing `.venv`, socket connections blocked, API keys
+removed from the test process environment and repository test-cache/bytecode
+writes disabled: **8 focused passed in 0.25s**; full suite **338 passed,
+2 skipped, 1 xfailed in 0.75s**. The skipped tests are live OpenAI classification
+and adjudication; this accounts for the two fewer passes. The known expected
+failure is remote-first versus mandatory twice-weekly office attendance.
+`git diff --check` passed. The eight tests exercise approval/missing-field
+exclusions, provider-only and partial salary exclusion, empty selections,
+ordering, non-mutation, full-population accounting, empty rates and denominator
+validation. No tests or implementation were added or refactored.
+
+**Limitations:** Eligibility trusts exported fields and cannot reverify salary
+evidence or classification. Manually built/mutated rows or injected processors
+can bypass upstream contracts; `JobExportRow` does not enforce positive/ordered
+salary bounds or carry verification status, currency or period. Normal processing
+requires complete descriptions for extraction and verified complete annual GBP
+bounds for salary analytics. Provider bounds never fill missing analytical
+salary; missing salary does not establish non-disclosure. Selection does not
+copy rows, deduplicate, enforce completeness or require known work patterns.
+Repeated inputs count repeatedly. Role-based salary analysis needs the sample
+intersection. No CSV loading, grouped reporting or market-representativeness
+validation is included. Credentials, snapshots and generated datasets were not
+edited, and no live API calls were made.
+
+**Next:** Proposed grouped analytical summaries with explicit eligible counts,
+full-input denominators and sample limitations; agree the next lesson before
+implementation. Any commit remains a separate user action/request.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.
@@ -1140,4 +1200,7 @@ collection, LLM evaluation or broader market claims follow from these results.
 - [ ] Extend audit fields only when a downstream use case requires them.
 
 - [x] Lesson 29: implement deterministic coverage metrics and record user-verified tests and live CSV coverage.
-- [ ] Review Lesson 29 for a separately requested commit.
+- [x] Record Lesson 29 commit `4315400`.
+- [x] Lesson 30: review selectors/contracts, document eligibility and sample accounting, run focused/full offline tests.
+- [ ] Commit Lesson 30 only when separately requested.
+- [ ] Agree the next milestone: grouped summaries with explicit sample accounting.
