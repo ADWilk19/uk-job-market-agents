@@ -84,7 +84,9 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 27 — Snapshot CLI | Implemented and tested; uncommitted | Explicit agent mode, exit codes, CSV exports and documented operational limits. |
 | Lesson 28 — Controlled live run | Completed; user-verified | Five ads; 4 processed, 1 review required, 0 failed; see handover below. |
 | Lesson 29 — Deterministic data quality evaluation | Committed at `4315400` | Six coverage metrics, validated counts/rates and consistent denominators; 7 focused passed; full 332 passed, 1 known xfailed. |
-| Lesson 30 — Analysis-ready dataset | Implemented and reviewed; uncommitted | Independent role/salary selectors and validated sample accounting; 8 focused passed; full offline 338 passed, 2 skipped, 1 known xfailed. |
+| Lesson 30 — Analysis-ready dataset | Committed at `1a00a7c` | Independent role/salary selectors and validated sample accounting; 8 focused passed; full offline 338 passed, 2 skipped, 1 known xfailed. |
+| Lesson 31 — Grouped analytical summaries | Committed at `9d62a81` | Role-family counts and verified salary coverage within eligible roles. |
+| Lesson 32 — Analytical report composition | Reviewed; pending integration | Composed eligibility and grouping with report-level reconciliation; 9 focused passed; full offline 357 passed, 2 skipped, 1 known xfailed. |
 
 ### Domain vocabulary
 
@@ -146,9 +148,9 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/25-processing-policy` | COMPLETE-only salary extraction; commit `bfac158` |
 | `lesson/26-snapshot-execution` | Snapshot-backed offline execution; committed at `507f7b1` |
 
-**Current working branch:** `lesson/30-analysis-ready-dataset` (verified 9 November 2026).
-HEAD is `4315400` (Lesson 29). Lesson 30 source and test files are untracked;
-this review changes only README and this handover, leaving source/tests intact.
+**Current working branch.** `lesson/32-analytical-report` (10 November 2026)
+starts at `9d62a81` (Lesson 31). The Lesson 32 source and tests are untracked,
+and the documentation changes are unstaged.
 
 **Lesson 27 baseline:** `507f7b1` (Lesson 26), verified 4 November 2026.
 Seven CLI source/test files were already staged on arrival. This close-out adds
@@ -214,13 +216,10 @@ mode until live processing is explicitly authorized. Commit/merge only when requ
 
 ## 6. Proposed next milestones
 
-**Current milestone: Lesson 30 — Analysis-ready dataset.**
-Implementation reviewed and tested offline; documentation updated. Commit only
-when separately requested. Proposed next milestone: deterministic grouped role
-and salary summaries over explicitly eligible samples, reporting sample sizes
-and exclusions. Agree scope before implementation; no further live collection
-is needed to define and test that contract. Keep LLM interpretation upstream
-and avoid representative-market claims from the five-advert sample.
+**Current milestone.** Lesson 32 combines eligibility accounting and grouped
+summaries in one deterministic report. Review it before integration. The
+proposed next milestone is a deterministic offline export of that report.
+Agree the output format and scope before implementation.
 
 Dashboards, retries, concurrency, persistent history and broader refactors
 remain deferred. Future lessons retain the teaching agreement.
@@ -1185,6 +1184,50 @@ full-input accounting in an offline report. Show the input size, role-eligible
 total and per-family salary coverage with explicit denominators. Agree the
 report scope and presentation before implementing it.
 
+### Lesson 32 — Analytical Report Composition
+
+**Branch and state.** Reviewed 10 November 2026 on
+`lesson/32-analytical-report`, based on Lesson 31 commit `9d62a81`.
+
+**Implementation and design.** `analytics/analytical_report.py` adds
+`build_analytical_report()` and the Pydantic `AnalyticalReport` model. The builder
+passes the same export rows to the Lesson 30 and 31 summarizers. The sample
+summary retains the full input size and both full-input eligibility rates.
+Each group carries its own role count as the denominator for within-family
+salary coverage. Salary eligibility is independent of classification, so
+classified and unclassified processed rows can contribute to the overall
+salary-eligible sample. Only their intersection with the role-eligible sample
+contributes to grouped salaries. LLM interpretation and salary verification
+stay upstream.
+
+**Review findings.** The builder already produced reconciled reports. The
+model could accept duplicate role families and impossible overlap counts when
+constructed directly. It now rejects duplicate families and requires the
+difference between standalone and grouped salary counts to fit within the
+rows outside the role sample. The existing role-total equality and grouped
+salary upper bound still apply.
+
+**Validation.** All **9 focused tests passed**. The seven original cases cover
+empty input, the full-input denominator, role reconciliation, a salary-eligible
+row without a role, two invalid report totals and input non-mutation. Two
+regression tests exercise the new validation checks. The full offline suite
+reported **357 passed, 2 skipped, 1 known xfailed**. API keys were removed from
+the test environment and network connections blocked. The classifier and
+adjudication integrations skipped, and the known expected failure concerns
+remote-first wording with mandatory twice-weekly office attendance.
+Whitespace checks covered both tracked edits and the two untracked files.
+
+**Limitations.** The report trusts the upstream export fields, counts repeats
+as supplied, and omits absent families. It provides counts and sample
+eligibility rates. The caller calculates within-family coverage. The report
+does not provide salary statistics, row-level exclusion reasons or evidence of
+market representativeness.
+
+**Proposed next milestone.** Agree the format of a deterministic offline
+report export. Carry forward the overall and within-family denominators and
+sample limitations, and test that the exported totals reconcile with the
+in-memory report.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.
@@ -1242,4 +1285,5 @@ report scope and presentation before implementing it.
 - [x] Lesson 30: review selectors/contracts, document eligibility and sample accounting, run focused/full offline tests.
 - [x] Record Lesson 30 commit `1a00a7c`.
 - [x] Lesson 31: review grouped summaries, document the contract and run offline tests.
-- [ ] Agree the next milestone for offline reporting and sample accounting.
+- [x] Lesson 32 — Review report composition and reconciliation, document the contract and run offline tests.
+- [ ] Review Lesson 32 for integration and agree the scope and format of the offline report export.

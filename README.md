@@ -523,8 +523,7 @@ env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pyt
 env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
 ```
 
-Current branch: `lesson/31-grouped-analytical-summaries` (reviewed 10 November 2026).
-Lesson 30 is committed at `1a00a7c`. See Lesson 31 below for offline validation.
+Lesson 30 is committed at `1a00a7c`. See the lesson sections below for offline validation.
 
 ## Lesson 24 — End-to-End Offline Workflow
 
@@ -1075,6 +1074,46 @@ environment. The two skipped OpenAI integration tests account for the difference
 from the expected 350 passes. The known expected failure concerns remote-first
 wording with mandatory twice-weekly office attendance.
 
+## Lesson 32 — Analytical report composition
+
+`build_analytical_report(rows)` in `analytics/analytical_report.py` accepts a
+sequence of `JobExportRow` records. It returns a Pydantic `AnalyticalReport`
+with Lesson 30's `samples` and Lesson 31's role-family `groups`, both computed
+from the same rows. The builder leaves the input unchanged and emits groups in
+ascending order of the role family enum value.
+
+| Measure | Numerator | Denominator |
+| --- | --- | --- |
+| Role eligibility (`samples.role_eligible`) | Processed rows with an approved role family | All supplied rows |
+| Salary eligibility (`samples.salary_eligible`) | Processed rows with both analytical salary bounds, including rows without a role family | All supplied rows |
+| Verified salary coverage within a role family | The group's `verified_salary_count` | The group's `role_count` |
+
+The full-input denominator includes failed and review-required rows. Both
+full-input rates are `None` for empty input, which yields zero counts and no
+groups. The report stores the counts needed to calculate within-family
+coverage. The caller calculates that rate.
+
+Sample metrics validate their counts and rates against the full input size.
+Each role family appears at most once, and the sum of group role counts
+equals the role-eligible total. Each group's verified salary count is bounded
+by its role count. The grouped verified salary total is the intersection of
+role and salary eligibility and cannot exceed the standalone salary-eligible
+total. Their difference counts salary-eligible rows outside the role sample
+and cannot exceed `samples.total - samples.role_eligible.populated`.
+
+The report counts supplied rows, including repeats, and omits absent families.
+It relies on upstream LLM interpretation, review and salary verification.
+Python performs the selection and aggregation, and Pydantic validates the
+report. Provider salary fields and partial analytical bounds do not qualify.
+A missing verified salary can reflect evidence availability or processing
+policy. Counts describe the supplied sample and cannot establish market
+representativeness. The report provides no salary distribution or file export.
+
+**Offline validation (10 November 2026).** **9 focused tests passed**. The
+full suite reported **357 passed, 2 skipped, 1 known xfailed** with API keys
+removed from the test environment and network connections blocked. The skips
+were the live OpenAI classifier and adjudication tests.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or
@@ -1094,8 +1133,7 @@ wording with mandatory twice-weekly office attendance.
 
 ## Planned Development
 
-1. Review Lesson 31 for approval.
-2. Proposed next milestone: an offline report that combines role-family counts with the full input size and explicit salary-coverage denominators.
-3. Carry sample limitations into the report alongside its counts and rates.
-4. Build operational monitoring and job-market dashboards.
-5. Investigate processing retries, persistence and concurrency where justified.
+1. Review Lesson 32 before integration.
+2. Agree the scope and format of a deterministic offline report export that carries denominators and sample limitations alongside the counts.
+3. Build operational monitoring and job-market dashboards.
+4. Investigate processing retries, persistence and concurrency where justified.
