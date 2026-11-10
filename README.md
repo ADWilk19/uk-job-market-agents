@@ -523,10 +523,8 @@ env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pyt
 env -u OPENAI_API_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
 ```
 
-Current branch: `lesson/30-analysis-ready-dataset` (verified 9 November 2026).
-Lesson 29 is committed at `4315400`. Lesson 30 implementation and tests remain
-untracked; this review updates documentation without staging or committing.
-See Lesson 30 below for fresh offline validation.
+Current branch: `lesson/31-grouped-analytical-summaries` (reviewed 10 November 2026).
+Lesson 30 is committed at `1a00a7c`. See Lesson 31 below for offline validation.
 
 ## Lesson 24 — End-to-End Offline Workflow
 
@@ -1034,6 +1032,49 @@ git diff --check
 
 The review also blocked socket connections during both test runs.
 
+## Lesson 31 — Grouped analytical summaries
+
+`summarize_by_role_family(rows)` in `analytics/grouped_summary.py` accepts a
+sequence of `JobExportRow` records and returns a list of `RoleFamilySummary`
+records. It emits one group per eligible role family in ascending lexical order
+of the enum's string value, regardless of input order. Empty input or input
+without eligible roles returns an empty list. The input records are unchanged.
+
+| Field | Meaning |
+| --- | --- |
+| `role_family` | Approved classification used as the group key |
+| `role_count` | Rows with `PROCESSED` status and a non-null `role_family` |
+| `verified_salary_count` | Rows counted in `role_count` with both analytical `salary_min` and `salary_max` populated |
+
+The function reuses both Lesson 30 selectors. Failed and review-required rows
+contribute to neither count. Provider salary fields and single analytical bounds
+do not qualify for the salary count. A row can qualify for Lesson 30's standalone
+salary sample without a role, so the grouped salary total represents the
+intersection of the two samples. Each eligible row contributes once per
+applicable count. The model validates non-negative counts and requires
+`verified_salary_count <= role_count`.
+
+Classification and salary verification happen upstream. Normal processing
+exports verified, complete annual GBP salary ranges into the analytical fields.
+Grouping trusts those fields and cannot verify the underlying evidence or
+detect all malformed rows constructed outside the export pipeline. Missing
+verified salary can reflect upstream policy or unavailable evidence and does
+not establish non-disclosure.
+
+Counts describe the supplied rows. Repeated rows count repeatedly, and absent
+families do not get zero-filled groups. The function produces no salary amounts,
+rates or full-input denominator. For within-family salary coverage, use
+`verified_salary_count / role_count`. Lesson 30's sample summary reports
+eligibility rates against the full input. Neither summary establishes market
+representativeness.
+
+**Offline validation (10 November 2026).** All **10 focused tests passed**.
+The full suite reported **348 passed, 2 skipped, 1 known xfailed** with
+network connections blocked and API keys removed from the test process
+environment. The two skipped OpenAI integration tests account for the difference
+from the expected 350 passes. The known expected failure concerns remote-first
+wording with mandatory twice-weekly office attendance.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or
@@ -1053,8 +1094,8 @@ The review also blocked socket connections during both test runs.
 
 ## Planned Development
 
-1. Review Lesson 30 changes for a separately requested commit.
-2. Proposed next milestone: deterministic grouped role/salary summaries using explicit eligible samples and reported denominators; agree the next lesson scope first.
-3. Retain provenance and sample limitations when extending analysis beyond Lesson 30 selectors.
+1. Review Lesson 31 for approval.
+2. Proposed next milestone: an offline report that combines role-family counts with the full input size and explicit salary-coverage denominators.
+3. Carry sample limitations into the report alongside its counts and rates.
 4. Build operational monitoring and job-market dashboards.
 5. Investigate processing retries, persistence and concurrency where justified.

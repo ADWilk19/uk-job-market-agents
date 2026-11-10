@@ -1147,6 +1147,44 @@ edited, and no live API calls were made.
 full-input denominators and sample limitations; agree the next lesson before
 implementation. Any commit remains a separate user action/request.
 
+### Lesson 31 — Grouped Analytical Summaries
+
+**Branch and state.** Reviewed 10 November 2026 on
+`lesson/31-grouped-analytical-summaries` at `1a00a7c` (Lesson 30).
+The Lesson 31 implementation and tests remain untracked. The review updates
+`README.md` and `COURSE_PROGRESS.md` only.
+
+**Implementation and design.** `summarize_by_role_family()` applies the Lesson 30
+role selector, then applies the salary selector within that population. It
+counts rows per approved role family and sorts groups by the enum's string
+value. Salary counts describe verified salary coverage within the eligible role
+sample. They can be lower than the standalone salary-eligible total, which also
+includes processed rows without roles. `RoleFamilySummary` validates
+non-negative counts and caps salary observations at the role count. The review
+found no material correctness defect. Aggregation reuses existing selectors
+and leaves LLM interpretation and salary verification upstream.
+
+**Validation.** All **10 focused tests passed**. They cover mixed eligibility,
+provider-only and partial salary bounds, failed and review-required rows,
+salary-eligible rows without roles, ordering, reconciliation, empty input,
+non-mutation and three invalid-count cases. The full suite reported
+**348 passed, 2 skipped, 1 known xfailed**. Test processes had network connections
+blocked and API keys removed from their environment. The skipped classifier and
+adjudication integration tests account for the difference from the expected
+350 passes. The known expected failure concerns remote-first wording and
+mandatory twice-weekly office attendance.
+
+**Limitations.** The grouping trusts export fields and counts repeated rows
+as supplied. It omits absent groups and provides counts without salary
+statistics or a full-input denominator. A zero salary count describes coverage
+of the exported analytical fields. Upstream processing policy and sample
+selection limit what can be inferred from those counts.
+
+**Proposed next milestone.** Combine the grouped counts and Lesson 30
+full-input accounting in an offline report. Show the input size, role-eligible
+total and per-family salary coverage with explicit denominators. Agree the
+report scope and presentation before implementing it.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.
@@ -1202,5 +1240,6 @@ implementation. Any commit remains a separate user action/request.
 - [x] Lesson 29: implement deterministic coverage metrics and record user-verified tests and live CSV coverage.
 - [x] Record Lesson 29 commit `4315400`.
 - [x] Lesson 30: review selectors/contracts, document eligibility and sample accounting, run focused/full offline tests.
-- [ ] Commit Lesson 30 only when separately requested.
-- [ ] Agree the next milestone: grouped summaries with explicit sample accounting.
+- [x] Record Lesson 30 commit `1a00a7c`.
+- [x] Lesson 31: review grouped summaries, document the contract and run offline tests.
+- [ ] Agree the next milestone for offline reporting and sample accounting.
