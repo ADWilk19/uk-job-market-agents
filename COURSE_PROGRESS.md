@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 9 November 2026
+**Last updated:** 11 November 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -87,6 +87,7 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 30 — Analysis-ready dataset | Committed at `1a00a7c` | Independent role/salary selectors and validated sample accounting; 8 focused passed; full offline 338 passed, 2 skipped, 1 known xfailed. |
 | Lesson 31 — Grouped analytical summaries | Committed at `9d62a81` | Role-family counts and verified salary coverage within eligible roles. |
 | Lesson 32 — Analytical report composition | Reviewed; pending integration | Composed eligibility and grouping with report-level reconciliation; 9 focused passed; full offline 357 passed, 2 skipped, 1 known xfailed. |
+| Lesson 33 — Analytical report CSV export | Reviewed offline | Added deterministic sample and group CSVs. Seven focused passed. Full offline suite yielded 364 passed, 2 skipped and 1 known xfailed. |
 
 ### Domain vocabulary
 
@@ -148,9 +149,9 @@ Design expectations: deterministic ordering/output, consistent schema, and expli
 | `lesson/25-processing-policy` | COMPLETE-only salary extraction; commit `bfac158` |
 | `lesson/26-snapshot-execution` | Snapshot-backed offline execution; committed at `507f7b1` |
 
-**Current working branch.** `lesson/32-analytical-report` (10 November 2026)
-starts at `9d62a81` (Lesson 31). The Lesson 32 source and tests are untracked,
-and the documentation changes are unstaged.
+**Current working branch.** `lesson/33-analytical-report-export` starts at
+`607957b` (Lesson 32). The Lesson 33 writer and tests were untracked at the
+start of review.
 
 **Lesson 27 baseline:** `507f7b1` (Lesson 26), verified 4 November 2026.
 Seven CLI source/test files were already staged on arrival. This close-out adds
@@ -216,10 +217,11 @@ mode until live processing is explicitly authorized. Commit/merge only when requ
 
 ## 6. Proposed next milestones
 
-**Current milestone.** Lesson 32 combines eligibility accounting and grouped
-summaries in one deterministic report. Review it before integration. The
-proposed next milestone is a deterministic offline export of that report.
-Agree the output format and scope before implementation.
+**Current milestone.** Lesson 33 exports the validated report to two
+deterministic CSVs. The proposed next lesson is an offline check against a
+representative fixture, including whether a downstream reader preserves the
+distinction between blank and zero rates and can reconcile group counts
+with the sample totals.
 
 Dashboards, retries, concurrency, persistent history and broader refactors
 remain deferred. Future lessons retain the teaching agreement.
@@ -1228,6 +1230,43 @@ report export. Carry forward the overall and within-family denominators and
 sample limitations, and test that the exported totals reconcile with the
 in-memory report.
 
+### Lesson 33 — Analytical Report CSV Export
+
+**Implementation.** `analytics/analytical_report_csv.py` writes a one-row
+sample CSV and a role-family CSV from the validated Lesson 32 report. It uses
+fixed headers, UTF-8 and LF, following the job export CSV conventions. The
+serializer sorts a copy of the group order by enum value and leaves the
+report unchanged. Python handles analytical processing and serialization,
+Pydantic validates the report and LLM interpretation remains upstream.
+
+**Design decisions.** Overall rates use all supplied rows as the denominator.
+Within-family verified salary coverage uses that family's role count.
+Standalone salary eligibility can include rows outside the grouped role
+sample. Rates are serialized as fractions using float text. Undefined rates
+are blank. Empty builder input gives one zero-count sample row and a
+header-only group file.
+
+**Review and validation (11 November 2026).** The supplied baseline was six
+focused passes and 365 full-suite passes with one known xfail. The review
+strengthened the empty and populated byte assertions, tested an out-of-order
+report for stable output and non-mutation, and added a symlink alias case that
+preserves existing output on collision. All seven focused cases passed. The
+full offline suite reported 364 passed, two OpenAI integration tests skipped
+and one known xfail for remote-first wording with mandatory office attendance.
+API keys were removed from the test process and network connections blocked.
+The writer required no production code changes.
+
+**Limitations.** Equal resolved paths are rejected before writing, including
+symlink aliases. Distinct resolved names can still identify one file through
+hard links or other filesystem aliases. Concurrent path changes can defeat
+the check. Writes overwrite the two files in sequence, so a failure can leave
+a partial output or a mismatched pair. The CSVs summarize supplied rows and
+inherit the report's eligibility and sample coverage limits.
+
+**Proposed next milestone.** Exercise the two-file contract with a
+representative offline fixture and a downstream CSV reader. Verify
+reconciliation and preservation of blank rates without live collection.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.
@@ -1286,4 +1325,6 @@ in-memory report.
 - [x] Record Lesson 30 commit `1a00a7c`.
 - [x] Lesson 31: review grouped summaries, document the contract and run offline tests.
 - [x] Lesson 32 — Review report composition and reconciliation, document the contract and run offline tests.
-- [ ] Review Lesson 32 for integration and agree the scope and format of the offline report export.
+- [x] Integrate Lesson 32 and implement the offline report export in Lesson 33.
+- [x] Review the Lesson 33 export contract and run offline validation.
+- [ ] Validate the report CSVs with a representative offline fixture and a downstream reader.

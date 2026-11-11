@@ -1107,12 +1107,75 @@ Python performs the selection and aggregation, and Pydantic validates the
 report. Provider salary fields and partial analytical bounds do not qualify.
 A missing verified salary can reflect evidence availability or processing
 policy. Counts describe the supplied sample and cannot establish market
-representativeness. The report provides no salary distribution or file export.
+representativeness. The report contains no salary distribution.
 
 **Offline validation (10 November 2026).** **9 focused tests passed**. The
 full suite reported **357 passed, 2 skipped, 1 known xfailed** with API keys
 removed from the test environment and network connections blocked. The skips
 were the live OpenAI classifier and adjudication tests.
+
+## Lesson 33 — Analytical report CSV export
+
+`write_analytical_report_csv(report, samples_path, groups_path)` in
+`analytics/analytical_report_csv.py` writes a validated `AnalyticalReport` to
+two caller-supplied `Path` destinations. Python serializes the report
+deterministically without changing it. Pydantic validates the report upstream,
+and LLM interpretation stays upstream of the analytical layer.
+
+Given a sequence named `rows` containing existing `JobExportRow` records:
+
+```python
+from pathlib import Path
+
+from uk_job_market_agents.analytics.analytical_report import build_analytical_report
+from uk_job_market_agents.analytics.analytical_report_csv import (
+    write_analytical_report_csv,
+)
+
+report = build_analytical_report(rows)
+write_analytical_report_csv(report, Path("samples.csv"), Path("groups.csv"))
+```
+
+Both CSVs use UTF-8 without a BOM, LF line endings and fixed header order.
+
+**`samples.csv`** has one data row, including for an empty input.
+
+| Column | Meaning |
+| --- | --- |
+| `total` | All supplied export rows, including failed and review-required rows and any repeats |
+| `role_eligible` | Processed rows with an approved role family |
+| `role_eligible_rate` | `role_eligible / total` |
+| `salary_eligible` | Processed rows with both verified annual analytical salary bounds, including eligible rows without a role family |
+| `salary_eligible_rate` | `salary_eligible / total` |
+
+**`groups.csv`** has one row per group in ascending role-family enum value
+order. The report builder omits absent families and gives an empty input no
+groups, so its group export contains only the header.
+
+| Column | Meaning |
+| --- | --- |
+| `role_family` | Role family enum value |
+| `role_count` | Role-eligible rows in this family |
+| `verified_salary_count` | Rows in this family that also meet salary eligibility |
+| `verified_salary_rate` | `verified_salary_count / role_count` |
+
+Rates are unitless fractions written as Python float text with no fixed
+decimal precision. A defined zero is `0.0`. A zero denominator yields a
+blank rate, including for a zero-count group in a manually constructed valid
+report. The sample rates are taken from the report's coverage metrics.
+Grouped salary counts can sum to less than the overall salary-eligible count
+because that count can include rows without an approved role family. Provider
+salary metadata and partial analytical bounds are excluded.
+
+Destination parent directories must already exist. The writer rejects equal
+resolved paths before either file is opened, including symlink aliases to the
+same target. This is a path comparison. Hard links and other aliases with
+different resolved paths may refer to the same file, and paths can change
+after the check. The writer overwrites existing outputs in sequence, samples
+first. Publication is non-atomic, so a write failure can leave a partial file
+or outputs from different runs. These CSVs summarize the supplied sample.
+Keep the job export for row-level provenance and interpret the rates within
+the sample's coverage limits.
 
 ## Current Limitations
 
@@ -1133,7 +1196,6 @@ were the live OpenAI classifier and adjudication tests.
 
 ## Planned Development
 
-1. Review Lesson 32 before integration.
-2. Agree the scope and format of a deterministic offline report export that carries denominators and sample limitations alongside the counts.
-3. Build operational monitoring and job-market dashboards.
-4. Investigate processing retries, persistence and concurrency where justified.
+1. Validate the report CSVs against a representative offline fixture and check that a downstream reader preserves blank rates and denominators.
+2. Build operational monitoring and job-market dashboards.
+3. Investigate processing retries, persistence and concurrency where justified.
