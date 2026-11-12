@@ -1167,15 +1167,34 @@ Grouped salary counts can sum to less than the overall salary-eligible count
 because that count can include rows without an approved role family. Provider
 salary metadata and partial analytical bounds are excluded.
 
-Destination parent directories must already exist. The writer rejects equal
-resolved paths before either file is opened, including symlink aliases to the
-same target. This is a path comparison. Hard links and other aliases with
-different resolved paths may refer to the same file, and paths can change
-after the check. The writer overwrites existing outputs in sequence, samples
-first. Publication is non-atomic, so a write failure can leave a partial file
-or outputs from different runs. These CSVs summarize the supplied sample.
-Keep the job export for row-level provenance and interpret the rates within
-the sample's coverage limits.
+These CSVs summarize the supplied sample. Keep the job export for row-level
+provenance and interpret the rates within the sample's coverage limits.
+
+## Lesson 34 — Safe report CSV publication
+
+The writer validates both destinations before staging. Parent directories
+must already exist, and existing targets must be regular files. Output
+symlinks are followed to their resolved targets. The writer rejects equal
+resolved paths and existing destinations that identify the same file,
+including hard links.
+
+Python serializes both CSVs in memory, then writes and closes a temporary
+file in each resolved destination directory before replacing either output.
+A serialization or staging failure leaves existing outputs intact. The
+writer publishes the samples CSV first, then the groups CSV, using
+`os.replace()` for each file. Readers opening an individual destination see
+a complete file across its replacement on filesystems that provide atomic
+rename. Replacement installs a new file with the staging file's metadata,
+including its permissions.
+
+Two sequential `os.replace()` operations are **not an atomic transaction**.
+A failure on the second replacement can leave new samples beside old or
+absent groups. The writer propagates the original error and attempts to
+remove unpublished temporary files. An unlink failure or abrupt termination
+can leave a temporary file behind. Publication provides no crash-durability
+or concurrent-writer guarantees. Use distinct names under the filesystem's
+case and normalization rules, especially for outputs that do not yet exist.
+Preflight checks reflect the paths at the time of validation.
 
 ## Current Limitations
 

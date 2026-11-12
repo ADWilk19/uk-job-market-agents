@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 11 November 2026
+**Last updated:** 12 November 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -88,6 +88,7 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 31 — Grouped analytical summaries | Committed at `9d62a81` | Role-family counts and verified salary coverage within eligible roles. |
 | Lesson 32 — Analytical report composition | Reviewed; pending integration | Composed eligibility and grouping with report-level reconciliation; 9 focused passed; full offline 357 passed, 2 skipped, 1 known xfailed. |
 | Lesson 33 — Analytical report CSV export | Reviewed offline | Added deterministic sample and group CSVs. Seven focused passed. Full offline suite yielded 364 passed, 2 skipped and 1 known xfailed. |
+| Lesson 34 — Safe report CSV publication | Reviewed offline | Staged both CSVs before individual replacements. 17 focused passed. Full offline suite yielded 374 passed, 2 skipped and 1 known xfailed. |
 
 ### Domain vocabulary
 
@@ -1267,6 +1268,46 @@ inherit the report's eligibility and sample coverage limits.
 representative offline fixture and a downstream CSV reader. Verify
 reconciliation and preservation of blank rates without live collection.
 
+### Lesson 34 — Safe Report CSV Publication
+
+**Implementation.** The CSV writer preflights both destinations, serializes
+both outputs in memory, and stages them as UTF-8/LF files in their resolved
+destination directories. Both temporary files are closed before the samples
+and groups outputs are replaced, in that order. Python handles validation
+of paths and publication, Pydantic validates the analytical report, and LLM
+interpretation remains upstream. CSV schemas, ordering, blank rates,
+empty-sample output and input non-mutation carry forward from Lesson 33.
+
+**Review decisions.** Publish to resolved symlink targets to preserve the
+direct writer's symlink behaviour. Reject existing same-file aliases and
+non-regular targets during preflight. Use a short staging filename prefix
+independent of the destination name. If staging or replacement fails, attempt
+all applicable temporary-file removals and propagate the original failure
+even when cleanup encounters a filesystem error.
+
+**Validation (12 November 2026).** The supplied baseline was 11 focused
+passes and 370 full-suite passes with one known xfail. The review exercised
+a partial write to the second temporary file, both replacement failure
+positions, a cleanup error, symlink preservation, hard-link collisions,
+and invalid parents. The existing byte-level and non-mutation cases also
+passed. The reviewed copy yielded 17 focused passes and 374 full-suite
+passes, two live OpenAI integration skips and one known xfail for remote-first
+wording with mandatory office attendance. The full run blocked network
+connections and excluded API keys.
+
+**Limitations.** Two sequential `os.replace()` operations are **not an
+atomic transaction**. Each successful replacement publishes a complete
+individual file. A second replacement failure can expose a mixed pair.
+Permissions come from the staged files, cleanup can leave temporary files
+if removal fails, and the writer provides no crash-durability or
+concurrent-writer guarantees. Filesystem aliases for absent destinations
+can evade preflight.
+
+**Proposed next milestone.** Validate both CSVs against a representative
+offline fixture and read them with a downstream CSV consumer. Check count
+reconciliation, overall and within-family denominators, and preservation of
+blank rates.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.
@@ -1327,4 +1368,5 @@ reconciliation and preservation of blank rates without live collection.
 - [x] Lesson 32 — Review report composition and reconciliation, document the contract and run offline tests.
 - [x] Integrate Lesson 32 and implement the offline report export in Lesson 33.
 - [x] Review the Lesson 33 export contract and run offline validation.
+- [x] Review Lesson 34 publication behaviour and run offline validation.
 - [ ] Validate the report CSVs with a representative offline fixture and a downstream reader.
