@@ -1196,6 +1196,35 @@ or concurrent-writer guarantees. Use distinct names under the filesystem's
 case and normalization rules, especially for outputs that do not yet exist.
 Preflight checks reflect the paths at the time of validation.
 
+## Lesson 35 — Offline report validation
+
+Run `python -m pytest -q tests/analytics/test_offline_report_validation.py`
+to build reports from synthetic `JobExportRow` fixtures, publish both CSVs
+to a temporary directory and read them back with Python's `csv.DictReader`.
+The workflow starts at the analytical export boundary and runs without API
+credentials or LLM calls.
+
+Open each CSV with `encoding="utf-8"` and `newline=""`. `DictReader`
+returns strings, so parse counts with `int()` and populated rates with
+`float()`. Map a blank rate to `None` to preserve the difference between an
+undefined rate and a measured `0.0`. Empty input produces one zero-count
+sample row with blank rates and a header-only groups CSV.
+
+Reconcile `role_eligible` with the sum of group `role_count` values. Subtract
+the sum of group `verified_salary_count` values from `salary_eligible` to
+count verified salaries on processed rows without an approved role family.
+Overall rates use all input rows, including failed and review-required rows.
+Those statuses contribute only to the overall denominator. Provider-only
+salary values leave role eligibility intact for processed, approved roles
+and contribute no verified salaries. Within-family coverage uses that
+family's role count as its denominator.
+
+The checks validate how downstream readers see the published aggregates.
+Coverage depends on upstream classification and salary verification. Counts
+include repeated input rows and describe only the supplied sample. The CSVs
+contain counts and coverage rates, so salary distributions and row-level
+provenance require the underlying job export.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or
@@ -1215,6 +1244,6 @@ Preflight checks reflect the paths at the time of validation.
 
 ## Planned Development
 
-1. Validate the report CSVs against a representative offline fixture and check that a downstream reader preserves blank rates and denominators.
+1. Publish a reproducible sample report with its input scope, coverage and limitations documented.
 2. Build operational monitoring and job-market dashboards.
 3. Investigate processing retries, persistence and concurrency where justified.

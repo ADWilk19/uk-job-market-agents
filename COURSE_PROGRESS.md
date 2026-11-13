@@ -89,6 +89,7 @@ The table is organised by **topic**, not an asserted canonical lesson numbering.
 | Lesson 32 — Analytical report composition | Reviewed; pending integration | Composed eligibility and grouping with report-level reconciliation; 9 focused passed; full offline 357 passed, 2 skipped, 1 known xfailed. |
 | Lesson 33 — Analytical report CSV export | Reviewed offline | Added deterministic sample and group CSVs. Seven focused passed. Full offline suite yielded 364 passed, 2 skipped and 1 known xfailed. |
 | Lesson 34 — Safe report CSV publication | Reviewed offline | Staged both CSVs before individual replacements. 17 focused passed. Full offline suite yielded 374 passed, 2 skipped and 1 known xfailed. |
+| Lesson 35 — Offline report validation | Reviewed offline | Reconciled samples and groups through a downstream CSV reader. Three focused passed. Full offline suite yielded 377 passed, 2 skipped and 1 known xfailed. |
 
 ### Domain vocabulary
 
@@ -1308,6 +1309,40 @@ offline fixture and read them with a downstream CSV consumer. Check count
 reconciliation, overall and within-family denominators, and preservation of
 blank rates.
 
+### Lesson 35 — Offline Report Validation
+
+**Implementation.** Three integration tests build analytical reports from
+synthetic `JobExportRow` records, publish both CSVs to temporary paths and
+read them with `csv.DictReader`. The mixed fixture checks that provider-only
+salaries preserve approved role counts and contribute zero verified salary
+observations. Review-required and failed rows retain their place in the
+overall denominator and contribute to neither eligible population, even
+when the synthetic rows carry a role family and salary bounds.
+
+**Review decisions.** Check the report at the CSV consumer boundary and keep
+the existing unit coverage for serialization details. The unclassified
+fixture checks both overall rates, the exported family and its coverage
+rate, and the difference between overall and grouped verified salaries.
+The empty fixture checks the consumer sees one zero-count sample row with
+blank rates and no group rows. LLM interpretation remains upstream and all
+report building, validation and export use deterministic Python and Pydantic.
+
+**Validation (13 November 2026).** The supplied baseline was 379 passed
+and one known XFAIL. The review run yielded three focused passes and 377
+full-suite passes, two credential-dependent OpenAI skips and one known
+XFAIL for remote-first adverts with mandatory office attendance. The full
+run blocked network connections and omitted API credentials.
+
+**Limitations.** The fixtures start with export rows. Aggregate coverage
+depends on upstream classification and verification, counts repeated rows,
+and describes the supplied sample. The group and sample files carry no
+row-level provenance or salary distributions. Lesson 34's publication
+limits still apply to the pair of CSVs.
+
+**Proposed next milestone.** Publish a reproducible sample report that
+records its input scope, generation steps, eligibility counts and coverage
+limits.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.
@@ -1369,4 +1404,4 @@ blank rates.
 - [x] Integrate Lesson 32 and implement the offline report export in Lesson 33.
 - [x] Review the Lesson 33 export contract and run offline validation.
 - [x] Review Lesson 34 publication behaviour and run offline validation.
-- [ ] Validate the report CSVs with a representative offline fixture and a downstream reader.
+- [x] Validate the report CSVs with a representative offline fixture and a downstream reader.
