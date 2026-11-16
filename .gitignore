@@ -21,3 +21,6 @@ data/raw/
 
 # Generated analytical exports
 data/processed/
+
+# Notebook checkpoints
+.ipynb_checkpoints/

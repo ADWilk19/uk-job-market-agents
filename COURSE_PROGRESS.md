@@ -1343,6 +1343,56 @@ limits still apply to the pair of CSVs.
 records its input scope, generation steps, eligibility counts and coverage
 limits.
 
+### Lesson 36 — Offline Report Workflow
+
+**Implementation.** Added
+[the exploration notebook](notebooks/01_uk_job_market_exploration.ipynb)
+to replay the three saved Adzuna UK search pages collected on 16 November
+2026. It reads the responses from `data/raw/`, records the search query
+for each result and checks 20 results per search and unique, present IDs.
+The notebook contains linked sections, two charts and a read-only review
+of salary evidence in the excerpts. The saved notebook has empty outputs
+and execution counts. The existing branch rule ignores
+`.ipynb_checkpoints/` at any depth.
+
+**Results.** The three searches yielded 60 advertisements with 60 distinct
+source IDs. There were 47 distinct advertiser/title/excerpt combinations
+and five repeated-content groups containing 18 records. Adzuna marked 42
+of 60 provider salary records as predicted. Twelve excerpts contained a
+pound symbol. One matched the strict pattern and verified as a daily rate.
+Zero met annual eligibility in this diagnostic. In two selected manual
+comparisons, predicted maxima exceeded the visible upper bounds by 13.1%
+and 25.7%. The annual periods were inferred from context.
+
+**Design decisions.** Preserve query lineage and every record in sample
+denominators. Treat exact-content grouping as a diagnostic for repeated
+advertising text, with vacancy identity unresolved. Keep provider
+prediction flags, sterling references, manual interpretation and
+deterministic verification distinct. Use production verification helpers
+with an extraction constructed from the first match per excerpt. This
+measures strict-pattern coverage and exercises the evidence contract.
+LLM extraction accuracy remains unmeasured.
+
+**Validation (16 November 2026).** The supplied baseline was 379 passes
+and one known XFAIL, with a successful restarted-kernel run. The review
+validated notebook format, cell order, contents targets, empty execution
+outputs and all reported counts by executing cells in order against the
+original snapshots. Both plots rendered. The sandbox blocked Jupyter's
+local kernel sockets during the review. The offline regression run
+reported 377 passed, two credential-dependent OpenAI skips and one known
+XFAIL. The review used no Adzuna or OpenAI API calls.
+
+**Limitations.** The analysis covers a small, non-random set of first-page
+search results. Excerpts can omit pay details and exact repeats can
+represent different vacancies. Full independent reproduction requires the
+original raw snapshots, which are excluded from Git. The two manual salary
+comparisons are illustrative.
+
+**Next milestone.** Lesson 37 will test targeted verification improvements
+against observed formats such as decimals, `pa`, missing second currency
+symbols and one-sided amounts. Require clear evidence for both salary
+bounds and pay period before treating any candidate as verified annual pay.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.

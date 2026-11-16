@@ -1225,6 +1225,72 @@ include repeated input rows and describe only the supplied sample. The CSVs
 contain counts and coverage rates, so salary distributions and row-level
 provenance require the underlying job export.
 
+## Lesson 36 — Offline exploration of Adzuna search results
+
+[01_uk_job_market_exploration.ipynb](notebooks/01_uk_job_market_exploration.ipynb)
+replays the saved first pages of three Adzuna UK searches from 16 November
+2026. It tracks the query for each advertisement, checks source IDs, groups
+exact repeats by advertiser, title and description excerpt, and compares
+provider salary provenance with salary evidence visible in the excerpts.
+It uses the raw responses directly, without invoking the ingestion workflow,
+the report CSV pipeline or an API.
+
+### Reproduce the notebook offline
+
+Use the repository's Python environment with the project installed and
+JupyterLab, ipykernel, pandas and Matplotlib available. For an existing
+repository virtual environment, run from the repository root:
+
+```bash
+source .venv/bin/activate
+python -m pip install -e . jupyterlab ipykernel pandas matplotlib
+python -m jupyterlab
+```
+
+Dependency installation may require internet access. Once installed,
+place the original response files in `data/raw/`:
+
+| Search | Saved response |
+| --- | --- |
+| `data engineer` | `adzuna_lesson36_20261116T092204Z.json` |
+| `analytics engineer` | `adzuna_analytics_engineer_20261116T093217Z.json` |
+| `data scientist` | `adzuna_data_scientist_20261116T093219Z.json` |
+
+Git excludes the raw responses, so a fresh checkout needs access to the
+original snapshots to reproduce these counts. The metadata sidecars record
+collection provenance and are optional for execution. Open the notebook
+using the repository environment's kernel and choose **Kernel → Restart
+Kernel and Run All Cells**. Execution needs no credentials or API calls.
+Before committing, clear the outputs and save the notebook. Git ignores
+Jupyter checkpoint directories.
+
+### Findings and limits
+
+The sample contains 60 advertisements and 60 distinct Adzuna IDs. There
+are 47 distinct advertiser/title/excerpt combinations. Five combinations
+account for 18 advertisements with repeated content. Distinct IDs identify
+source records. Matching excerpts can describe separate vacancies, so the
+analysis keeps all 60 records.
+
+Adzuna flags 42 of 60 salary records as predicted. Twelve of 60 excerpts
+contain a pound symbol. A sterling reference screens for potential evidence
+and the provider flag describes provenance. Full-advert salary disclosure
+cannot be inferred from either measure. The manual comparison of two
+selected excerpts found predicted maxima 13.1% and 25.7% above the visible
+upper bounds. The annual period in both cases was inferred from context.
+
+The notebook used the first strict regex match per pound-bearing excerpt to
+construct an extraction for deterministic verification. One excerpt
+matched and verified as a daily rate. Zero met annual eligibility in this
+diagnostic. The diagnostic measures strict-pattern coverage in these
+excerpts. Measuring LLM extraction accuracy would require independent
+extractions and reference labels.
+
+The sample is small, non-random and limited to first-page results and
+truncated descriptions. Its counts describe these retrieved records.
+Lesson 37 will use the observed unsupported formats to guide targeted
+salary-verification tests and improvements.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or
@@ -1244,6 +1310,6 @@ provenance require the underlying job export.
 
 ## Planned Development
 
-1. Publish a reproducible sample report with its input scope, coverage and limitations documented.
+1. Add targeted salary-verification tests and improvements based on Lesson 36's observed formats.
 2. Build operational monitoring and job-market dashboards.
 3. Investigate processing retries, persistence and concurrency where justified.
