@@ -1,4 +1,5 @@
 import re
+from decimal import Decimal
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict
@@ -11,9 +12,9 @@ from uk_job_market_agents.models.salary import SalaryPeriod
 
 SALARY_RANGE_PATTERN = re.compile(
     r"(?:Salary:\s*)?"
-    r"£(\d{1,3}(?:,\d{3})+|\d+)\s*[-–]\s*"
-    r"£(\d{1,3}(?:,\d{3})+|\d+)"
-    r"\s+(?:per annum|per year|annually|per day|daily|per hour|hourly)"
+    r"£(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?k|\d+)\s*[-–]\s*"
+    r"£(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?k|\d+)"
+    r"\s+(?:per annum|per year|annually|per day|daily|per hour|hourly)(?!\w)"
     r"\.?",
     re.IGNORECASE,
 )
@@ -69,7 +70,10 @@ def assess_salary_extraction(
             reason="Incomplete salary extraction",
         )
 
-    if extraction.evidence not in advert_text:
+    evidence_pattern = re.escape(extraction.evidence)
+    if extraction.evidence[-1].isalnum():
+        evidence_pattern += r"(?!\w)"
+    if re.search(evidence_pattern, advert_text) is None:
         return SalaryAssessment(
             extraction=extraction,
             status=SalaryReviewStatus.REVIEW_REQUIRED,
@@ -110,6 +114,23 @@ def assess_salary_extraction(
     )
 
 
+def parse_salary_amount(value: str) -> int | None:
+    """Convert a matched GBP amount into whole pounds if exact."""
+
+    normalized = value.replace(",", "").lower()
+
+    if normalized.endswith("k"):
+        pounds = Decimal(f"{normalized[:-1]}e3")
+        if pounds != pounds.to_integral_value():
+            return None
+        return int(pounds)
+
+    try:
+        return int(normalized)
+    except ValueError:
+        return None
+
+
 def parse_salary_range(evidence: str) -> tuple[int, int] | None:
     """Parse an explicit GBP salary range from evidence."""
 
@@ -118,8 +139,11 @@ def parse_salary_range(evidence: str) -> tuple[int, int] | None:
     if match is None:
         return None
 
-    salary_min = int(match.group(1).replace(",", ""))
-    salary_max = int(match.group(2).replace(",", ""))
+    salary_min = parse_salary_amount(match.group(1))
+    salary_max = parse_salary_amount(match.group(2))
+
+    if salary_min is None or salary_max is None or not 0 < salary_min <= salary_max:
+        return None
 
     return salary_min, salary_max
 

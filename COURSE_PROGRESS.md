@@ -1393,6 +1393,39 @@ against observed formats such as decimals, `pa`, missing second currency
 symbols and one-sided amounts. Require clear evidence for both salary
 bounds and pay period before treating any candidate as verified annual pay.
 
+### Lesson 37 — Salary Evidence Verification
+
+**Implementation.** Extended the deterministic verifier to accept `k` and
+`K` in either bound of an explicit GBP range. Whole-pound amounts, correctly
+grouped commas, decimal abbreviations and mixed notation are supported.
+Abbreviated amounts use an exact `Decimal` conversion. Malformed, fractional,
+non-positive and reversed bounds require review. The evidence check also
+rejects quotations that end partway through a period word.
+
+**Design decisions.** The LLM supplies the candidate salary and verbatim
+evidence. Verification requires two matching GBP bounds and a matching explicit
+period. Daily and hourly rates can verify, while only verified annual GBP
+ranges qualify for salary analytics. The Lesson 36 exploration used excerpts
+as a format diagnostic. The production workflow still requires complete adverts
+for salary extraction.
+
+**Validation (17 November 2026).** The supplied baseline was 384 passed and
+one known XFAIL. The reviewed changes produced 26 focused passes and an
+offline regression result of 391 passed, two credential-dependent OpenAI skips
+and the known work-pattern XFAIL. Tests cover successful mixed and abbreviated
+notation through verification and workflow, malformed and fractional amounts,
+invalid ranges, unsupported periods and evidence discrepancies. No live API
+calls were made.
+
+**Limitations.** Single bounds, missing currency symbols, inferred periods,
+`pa`, monthly pay and qualifications outside the selected evidence remain
+outside the verifier's supported grammar. It checks the chosen quotation
+without resolving competing or conditional salary statements in the advert.
+
+**Next milestone.** Replay the Lesson 36 excerpts offline to measure the
+coverage change and catalogue the remaining evidence formats. Use those findings
+to decide whether to support additional explicit period forms such as `pa`.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.

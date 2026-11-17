@@ -38,7 +38,7 @@ def test_salary_workflow_verifies_supported_extraction(monkeypatch):
     assert result.reason is None
 
 
-def test_salary_workflow_flags_unsupported_evidence(monkeypatch):
+def test_salary_workflow_verifies_abbreviated_salary_range(monkeypatch):
     advert = "Senior Data Engineer — £65k–£80k per annum"
 
     extraction = SalaryExtractionResult(
@@ -58,9 +58,9 @@ def test_salary_workflow_flags_unsupported_evidence(monkeypatch):
 
     result = run_salary_workflow(advert)
 
-    assert result.status == SalaryReviewStatus.REVIEW_REQUIRED
+    assert result.status == SalaryReviewStatus.VERIFIED
     assert result.extraction == extraction
-    assert result.reason == "Unsupported salary evidence format"
+    assert result.reason is None
 
 
 def test_salary_workflow_handles_undisclosed_salary(monkeypatch):
@@ -81,5 +81,3 @@ def test_salary_workflow_handles_undisclosed_salary(monkeypatch):
     assert result.status == SalaryReviewStatus.NOT_DISCLOSED
     assert result.extraction == extraction
     assert result.reason is None
-
-

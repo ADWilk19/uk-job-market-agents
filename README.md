@@ -1288,8 +1288,41 @@ extractions and reference labels.
 
 The sample is small, non-random and limited to first-page results and
 truncated descriptions. Its counts describe these retrieved records.
-Lesson 37 will use the observed unsupported formats to guide targeted
-salary-verification tests and improvements.
+Lesson 37 adds exact verification for abbreviated ranges. The counts above
+describe the Lesson 36 run.
+
+## Lesson 37 — Salary evidence verification
+
+The LLM proposes a structured salary and copies supporting text from the
+advertisement. The deterministic verifier checks that the evidence occurs
+verbatim in the advert, that the evidence matches a supported range, and
+that both bounds and the extracted period agree with the text.
+
+| Evidence | Verified bounds in pounds | Period |
+| --- | --- | --- |
+| `Salary: £45,000–£55,000 per annum.` | 45,000 to 55,000 | Year |
+| `£42.5k - £55K per year` | 42,500 to 55,000 | Year |
+| `£45,000–£55k annually` | 45,000 to 55,000 | Year |
+| `£450–£550 per day` | 450 to 550 | Day |
+| `£45–£55 hourly` | 45 to 55 | Hour |
+
+Both bounds must be positive, ordered and prefixed with `£`. Use a hyphen
+or en dash. Each bound can be an ungrouped or correctly comma-grouped whole
+number, or an ungrouped `k`/`K` amount. Decimal abbreviations must expand to
+exact whole pounds. The optional `Salary:` label and final full stop are
+accepted. Supported periods are `per annum`, `per year`, `annually`,
+`per day`, `daily`, `per hour` and `hourly`.
+
+A missing or unsupported period, including `pa` and monthly pay, requires
+review, as do one-sided quotes, a missing second pound sign, decimal amounts
+without `k`, and conflicting or mismatched evidence. Verification evaluates the
+selected quotation. Resolving multiple salary quotations, conditional pay, and
+other surrounding context falls outside this check.
+
+The processing workflow requests salary extraction only for complete adverts.
+Provider estimates and excerpt-only evidence remain outside that workflow.
+Only verified annual GBP ranges qualify for salary analytics. Verified daily
+and hourly ranges retain their original periods.
 
 ## Current Limitations
 
@@ -1310,6 +1343,6 @@ salary-verification tests and improvements.
 
 ## Planned Development
 
-1. Add targeted salary-verification tests and improvements based on Lesson 36's observed formats.
+1. Replay the Lesson 36 excerpts offline to measure the change in strict-format coverage and catalogue the remaining pay formats.
 2. Build operational monitoring and job-market dashboards.
 3. Investigate processing retries, persistence and concurrency where justified.
