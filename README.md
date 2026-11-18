@@ -1324,6 +1324,24 @@ Provider estimates and excerpt-only evidence remain outside that workflow.
 Only verified annual GBP ranges qualify for salary analytics. Verified daily
 and hourly ranges retain their original periods.
 
+## Lesson 38 — Offline salary verification replay
+
+The [Lesson 38 notebook](notebooks/02_salary_verification_replay.ipynb)
+replays the saved Lesson 36 Adzuna snapshot offline. Of 20 saved advertisements,
+eight descriptions contained a pound sign. Both the reconstructed pre-Lesson 37
+parser (`f2f2f86`) and the Lesson 37 parser (`5f37e1f`) recognised **0 of 8**
+manually selected quotations. Separate synthetic controls showed recognition
+of abbreviated amounts and stronger numerical validation after Lesson 37.
+
+The replay measures recognition of selected salary strings. Full
+verification also checks evidence against the advert and reconciles extracted
+bounds and period. The small sample consists of saved excerpts, and the
+replay is an informal evaluation of local snapshot and parser tooling.
+To reproduce it, run the notebook from `notebooks/` with pandas and the
+project installed, the original Lesson 36 snapshot under `data/raw/`, and
+both commits available in local Git history. The raw snapshot is excluded
+from Git.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or
@@ -1343,6 +1361,6 @@ and hourly ranges retain their original periods.
 
 ## Planned Development
 
-1. Replay the Lesson 36 excerpts offline to measure the change in strict-format coverage and catalogue the remaining pay formats.
+1. Build a manually labelled evidence set for offline evaluation. Start with explicit period forms such as `pa` and measure parser recognition and complete verification separately before extending the grammar.
 2. Build operational monitoring and job-market dashboards.
 3. Investigate processing retries, persistence and concurrency where justified.

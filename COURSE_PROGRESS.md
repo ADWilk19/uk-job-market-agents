@@ -1426,6 +1426,35 @@ without resolving competing or conditional salary statements in the advert.
 coverage change and catalogue the remaining evidence formats. Use those findings
 to decide whether to support additional explicit period forms such as `pa`.
 
+### Lesson 38 — Offline Salary Verification Replay
+
+- Replayed the saved Lesson 36 snapshot using the
+  [Lesson 38 notebook](notebooks/02_salary_verification_replay.ipynb).
+  All 20 advertisements carried provider salary bounds, 12 were flagged
+  predicted, and eight saved descriptions contained a pound sign. Two
+  predicted values exceeded the upper bounds quoted in their descriptions.
+  Two non-predicted records contained no pound sign in the saved text.
+- Compared identical, manually selected quotations with the Lesson 37
+  parser and a notebook-local reconstruction of the `f2f2f86` parser.
+  Both recognised 0 of 8 quotations. The sample contained no abbreviated
+  `k` amounts.
+- Separate synthetic controls demonstrated support for abbreviated amounts
+  and rejection of reversed and zero-lower-bound ranges. Equal positive
+  bounds remained supported.
+- The saved excerpts and manual selection limit the comparison to recognition
+  of those strings. This informal evaluation exercised local snapshot reading,
+  metadata inspection and parser replay. Automatic evidence extraction,
+  complete verification and analytics eligibility were outside its scope.
+
+**Validation.** All notebook code cells ran in a fresh in-process IPython
+kernel. The full regression suite returned 391 passed, 2 skipped because
+OpenAI credentials were unset, and 1 known work-pattern xfail.
+
+**Next milestone.** Build a labelled offline evidence set covering observed
+formats and ambiguous cases. Use it to assess explicit period forms such as
+`pa` and measure recognition separately from complete verification before
+deciding on parser changes.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.
