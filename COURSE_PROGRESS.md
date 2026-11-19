@@ -1482,6 +1482,31 @@ Use a matching advert and negative controls for absent or conflicting
 periods. Keep single amounts, approximation and day-rate policy separate
 from the abbreviation change.
 
+## Definition of Done — First Portfolio Release
+
+**Target publication:** 15 December 2026
+
+**Deliverable:** A publicly accessible portfolio case study demonstrating a reproducible, evidence-based UK job-market analysis using the UK Job Market Agents project.
+
+The release is complete when:
+
+1. **Offline reproducibility:** A reader can follow documented instructions to reproduce the analytical workflow from a saved Adzuna snapshot through classification, salary verification and deterministic reporting, without live API credentials or LLM calls.
+2. **Traceability:** Reported counts, exclusions, denominators and salary-eligibility decisions can be reconciled to the input records.
+3. **Analytical transparency:** The published results explain sample provenance, coverage, limitations, uncertainty and why the sample must not be treated as representative of the entire UK labour market.
+4. **Architecture:** The case study clearly explains how agents/LLMs handle interpretation while deterministic Python/Pydantic handles validation, enforceable rules, analytics policy and serialization.
+5. **Validation:** The offline workflow and relevant analytical contracts are covered by passing automated tests, with known skips and expected failures documented.
+6. **Publication:** The website is publicly accessible, the repository and case study are linked, and a reader can follow the documented workflow.
+
+### Deferred to the UK Labour Market Observatory
+
+Automated recurring collection, live dashboards, broader salary-parser coverage, production-scale orchestration and additional data sources are not prerequisites for this release.
+
+### Scope-control rule
+
+Remaining lessons must directly address an unmet release criterion or a material correctness defect. Otherwise, the work belongs on the Observatory backlog.
+
+**Completion is determined by reproducibility, analytical integrity and publication—not by the number of lessons or features implemented.**
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.
