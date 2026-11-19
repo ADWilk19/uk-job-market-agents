@@ -1482,6 +1482,28 @@ Use a matching advert and negative controls for absent or conflicting
 periods. Keep single amounts, approximation and day-rate policy separate
 from the abbreviation change.
 
+### Lesson 40 — Expanded Salary Evidence Recognition
+
+- Added immutable salary evidence with GBP bounds, the stated period and
+  precision. Supported forms now include `pa`, exact whole-pound decimals,
+  single amounts, `to` ranges, period-free quotes and `Circa`.
+- Verification checks quotes against the advert and requires exact bounds and
+  a matching explicit period. Tests cover clipped quotations, malformed
+  amounts and conflicting periods. Verified daily rates stay outside annual
+  reports, and unknown-period and approximate quotes require review.
+- Automated assertions cover every labelled Lesson 39 quotation. Recognition
+  and numeric matches increased from 0/8 to 8/8, with all eight period and
+  precision labels matching on their first measurement. The sample consists
+  of earlier misses and cannot estimate wider market accuracy. Qualifications
+  outside the immediate quote remain a limitation.
+- Offline review validation passed 68 focused tests. The full suite recorded
+  423 passed, two live OpenAI integration tests skipped, and the known
+  work-pattern xfail. The local snapshot provenance check ran.
+
+**Next milestone.** Replay the saved Lesson 36 sample offline with the updated
+verifier. Reconcile changes in verification and annual eligibility against the
+report counts and denominators for the portfolio case study.
+
 ## Definition of Done — First Portfolio Release
 
 **Target publication:** 15 December 2026

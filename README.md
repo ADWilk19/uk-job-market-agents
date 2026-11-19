@@ -1353,7 +1353,7 @@ the stated pay period and a precision label.
 Single amounts use equal bounds, including the approximate `Circa £55,000`
 quote. Here, `exact` describes the numeric amounts as written. Quotes without
 an explicit period are labelled `unknown`. The label `year` on the `pa` case
-records the meaning of the quotation even though the current parser does not
+records the meaning of the quotation even though the Lesson 39 parser did not
 support that abbreviation.
 
 The test-local evaluator records recognition when the parser returns bounds
@@ -1361,7 +1361,7 @@ and numeric correctness when both bounds match the labels exactly. The Lesson
 39 baseline is **0/8 recognised and 0/8 numeric matches**. The observed-case
 test checks coverage without fixing the score at zero, so later parser
 improvements can change it. This deliberately selected set of previous
-misses cannot estimate accuracy across advertisements. The score also leaves
+misses cannot estimate accuracy across advertisements. The Lesson 39 score also leaves
 period, precision, full evidence verification and annual analytics eligibility
 unmeasured. Production verification still requires agreement with the advert
 and the extracted bounds and period. Only verified annual GBP ranges qualify
@@ -1377,6 +1377,29 @@ With the original snapshot under `data/raw/`, the provenance test checks
 each quotation verbatim against the description for its advertisement ID.
 On a fresh checkout, only that test is skipped because the snapshot is
 excluded from Git. The test fixtures and evaluator require no live services.
+
+## Lesson 40 — Expanded Salary Evidence Recognition
+
+The deterministic recogniser records whole-pound GBP bounds, the stated pay
+period and whether a quote uses `Circa`. It handles single amounts with equal
+bounds, decimal amounts that resolve exactly to whole pounds, ranges with
+`to` or a dash, and the explicit annual abbreviation `pa`. A quote without
+a stated period keeps an unknown period. The recogniser preserves support for
+the optional `Salary:` prefix and a trailing full stop.
+
+The LLM still extracts a quote and salary. Verification checks the quote
+against the advert and requires exact evidence with matching bounds and an
+explicit, matching period. Approximate or period-free quotes require review.
+Exact daily rates can verify, while annual analytics require verified annual
+GBP bounds. The verifier checks for immediately adjacent `Circa`, range
+prefixes and extra supported period labels that a quotation might omit.
+Qualifications elsewhere in the advert still require contextual judgement.
+
+On the eight labelled Lesson 39 quotations, recognition and numeric matches
+rose from 0/8 to 8/8. The expanded recogniser also matched all eight period
+and precision labels, which were first scored in this lesson. The offline
+benchmark command above runs those assertions. These examples were selected
+from previous misses, so the scores describe this fixture only.
 
 ## Current Limitations
 
@@ -1397,6 +1420,6 @@ excluded from Git. The test fixtures and evaluator require no live services.
 
 ## Planned Development
 
-1. Use the labelled benchmark to assess explicit period forms such as `pa`. Measure parser recognition and complete verification separately before extending the grammar.
+1. Replay the saved Lesson 36 sample offline and reconcile verified salaries and annual eligibility with the report for the first portfolio release.
 2. Build operational monitoring and job-market dashboards.
 3. Investigate processing retries, persistence and concurrency where justified.

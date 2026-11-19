@@ -8,6 +8,9 @@ from uk_job_market_agents.agents.salary_review import (
     SalaryReviewStatus,
     assess_salary_extraction,
 )
+from uk_job_market_agents.analytics.salary_policy import (
+    is_salary_eligible_for_analytics,
+)
 from uk_job_market_agents.models.salary import SalaryPeriod
 
 
@@ -204,6 +207,126 @@ def test_verifies_abbreviated_annual_salary_range():
 
     assert assessment.status == SalaryReviewStatus.VERIFIED
     assert assessment.reason is None
+
+
+def test_verifies_observed_pa_annual_salary_range():
+    evidence = "£76,000 - £95,000 pa"
+
+    extraction = SalaryExtractionResult(
+        salary={
+            "salary_min": 76000,
+            "salary_max": 95000,
+            "period": SalaryPeriod.YEAR,
+            "currency": "GBP",
+        },
+        evidence=evidence,
+    )
+
+    assessment = assess_salary_extraction(evidence, extraction)
+
+    assert assessment.status == SalaryReviewStatus.VERIFIED
+    assert assessment.reason is None
+    assert is_salary_eligible_for_analytics(assessment)
+
+
+@pytest.mark.parametrize(
+    "evidence",
+    [
+        "£76,000 - £95,000 pa per day",
+        "£76,000 - £95,000 pay",
+        "£76,000 - £95,000",
+    ],
+)
+def test_rejects_unsupported_pa_salary_evidence(evidence):
+    extraction = SalaryExtractionResult(
+        salary={
+            "salary_min": 76000,
+            "salary_max": 95000,
+            "period": SalaryPeriod.YEAR,
+            "currency": "GBP",
+        },
+        evidence=evidence,
+    )
+
+    assessment = assess_salary_extraction(evidence, extraction)
+
+    assert assessment.status == SalaryReviewStatus.REVIEW_REQUIRED
+
+
+@pytest.mark.parametrize(
+    "evidence,salary_min,salary_max",
+    [
+        ("£450.00 - £500.00 per day", 450, 500),
+        ("£500 per day", 500, 500),
+    ],
+)
+def test_verifies_observed_daily_salary_evidence(
+    evidence, salary_min, salary_max
+):
+    extraction = SalaryExtractionResult(
+        salary={
+            "salary_min": salary_min,
+            "salary_max": salary_max,
+            "period": SalaryPeriod.DAY,
+            "currency": "GBP",
+        },
+        evidence=evidence,
+    )
+
+    assessment = assess_salary_extraction(evidence, extraction)
+
+    assert assessment.status == SalaryReviewStatus.VERIFIED
+    assert assessment.reason is None
+    assert not is_salary_eligible_for_analytics(assessment)
+
+
+@pytest.mark.parametrize(
+    "evidence,salary_min,salary_max",
+    [
+        ("£95,000 - £105,000", 95000, 105000),
+        ("Circa £55,000 pa", 55000, 55000),
+    ],
+)
+def test_unverified_evidence_cannot_imply_annual_salary(
+    evidence, salary_min, salary_max
+):
+    extraction = SalaryExtractionResult(
+        salary={
+            "salary_min": salary_min,
+            "salary_max": salary_max,
+            "period": SalaryPeriod.YEAR,
+            "currency": "GBP",
+        },
+        evidence=evidence,
+    )
+
+    assessment = assess_salary_extraction(evidence, extraction)
+
+    assert assessment.status == SalaryReviewStatus.REVIEW_REQUIRED
+    assert assessment.reason == "Unsupported salary evidence format"
+    assert not is_salary_eligible_for_analytics(assessment)
+
+
+@pytest.mark.parametrize(
+    "advert_text",
+    ["Circa £55k pa", "£45k – £55k pa", "£45k to £55k pa", "£55k pa PER DAY"],
+)
+def test_single_amount_cannot_omit_qualifying_text(advert_text):
+    evidence = "£55k pa"
+    extraction = SalaryExtractionResult(
+        salary={
+            "salary_min": 55000,
+            "salary_max": 55000,
+            "period": SalaryPeriod.YEAR,
+            "currency": "GBP",
+        },
+        evidence=evidence,
+    )
+
+    assessment = assess_salary_extraction(advert_text, extraction)
+
+    assert assessment.status == SalaryReviewStatus.REVIEW_REQUIRED
+    assert not is_salary_eligible_for_analytics(assessment)
 
 
 @pytest.mark.parametrize(

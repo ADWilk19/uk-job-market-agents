@@ -1,7 +1,10 @@
 import csv
 from pathlib import Path
 
-from uk_job_market_agents.agents.salary_review import parse_salary_range
+from uk_job_market_agents.agents.salary_review import (
+    parse_salary_evidence,
+    parse_salary_range,
+)
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -90,3 +93,21 @@ def test_observed_evidence_evaluation_is_complete():
         and isinstance(result["numeric_match"], bool)
         for result in results
     )
+
+def test_expanded_recogniser_matches_all_observed_labels():
+    with FIXTURE.open(encoding="utf-8", newline="") as handle:
+        rows = list(csv.DictReader(handle))
+
+    assert rows
+    for row in rows:
+        case = row["case_id"]
+        evidence = parse_salary_evidence(row["evidence_text"])
+        assert evidence is not None, case
+        assert (evidence.salary_min, evidence.salary_max) == (
+            int(row["expected_min_gbp"]),
+            int(row["expected_max_gbp"]),
+        ), case
+        period = evidence.period.value if evidence.period is not None else "unknown"
+        assert period == row["expected_period"], case
+        precision = "approximate" if evidence.approximate else "exact"
+        assert precision == row["precision"], case
