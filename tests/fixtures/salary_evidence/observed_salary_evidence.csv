@@ -1,0 +1,9 @@
+case_id,source_snapshot,advertisement_id,evidence_text,expected_min_gbp,expected_max_gbp,expected_period,precision
+observed_00,adzuna_lesson36_20261116T092204Z.json,5966452947,£450.00 - £500.00 per day,450,500,day,exact
+observed_01,adzuna_lesson36_20261116T092204Z.json,5966452965,£500 per day,500,500,day,exact
+observed_06,adzuna_lesson36_20261116T092204Z.json,5943502225,"£95,000 - £105,000",95000,105000,unknown,exact
+observed_07,adzuna_lesson36_20261116T092204Z.json,5964692379,"£70,000 to £90,000",70000,90000,unknown,exact
+observed_09,adzuna_lesson36_20261116T092204Z.json,5963732722,"£75,000 - £85,000",75000,85000,unknown,exact
+observed_15,adzuna_lesson36_20261116T092204Z.json,5937907052,"£55,000 - £65,000",55000,65000,unknown,exact
+observed_16,adzuna_lesson36_20261116T092204Z.json,5942247007,"Circa £55,000",55000,55000,unknown,approximate
+observed_17,adzuna_lesson36_20261116T092204Z.json,5952727682,"£76,000 - £95,000 pa",76000,95000,year,exact

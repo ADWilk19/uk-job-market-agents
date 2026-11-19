@@ -1455,6 +1455,33 @@ formats and ambiguous cases. Use it to assess explicit period forms such as
 `pa` and measure recognition separately from complete verification before
 deciding on parser changes.
 
+### Lesson 39 — Labelled Salary Evidence Benchmark
+
+- Recorded eight quotations from the saved Lesson 36 Adzuna descriptions with
+  stable advertisement IDs, verbatim evidence, expected GBP bounds, stated
+  pay periods and precision labels. Two quotations state daily pay, one states
+  annual pay using `pa`, and five leave the period unspecified. Single amounts
+  use equal bounds, and `Circa £55,000` retains its approximate label.
+- Three fixture tests check row structure, identifiers, labels and source
+  provenance. The provenance test skips when the original local snapshot is
+  missing. Two evaluator tests cover correct, incorrect and unrecognised
+  outcomes and check result coverage across the eight labelled cases.
+- The observed baseline is **0/8 recognised and 0/8 numeric matches**.
+  The sample was selected from prior misses. These scores describe the
+  standalone quotes and leave verification, annual eligibility, period and
+  precision unscored. The evaluator stays test-local while pytest is its only
+  caller.
+
+**Validation.** Five focused tests passed with the original snapshot. The
+offline full suite returned 396 passed, 2 credential-gated integration tests
+skipped, and 1 known work-pattern xfail.
+
+**Next milestone.** Test the explicit annual abbreviation `pa` through
+recognition, period reconciliation, verification and annual eligibility.
+Use a matching advert and negative controls for absent or conflicting
+periods. Keep single amounts, approximation and day-rate policy separate
+from the abbreviation change.
+
 ## 10. Open housekeeping items
 
 - [x] Complete Lesson 12 regression validation, commit and push.

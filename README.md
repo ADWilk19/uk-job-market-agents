@@ -1342,6 +1342,42 @@ project installed, the original Lesson 36 snapshot under `data/raw/`, and
 both commits available in local Git history. The raw snapshot is excluded
 from Git.
 
+## Lesson 39 — Labelled Salary Evidence Benchmark
+
+The [benchmark CSV](tests/fixtures/salary_evidence/observed_salary_evidence.csv)
+records eight quotations checked against their saved Lesson 36 Adzuna
+descriptions. Each row carries a stable case ID, the snapshot filename,
+the Adzuna advertisement ID, a verbatim quotation, expected GBP bounds,
+the stated pay period and a precision label.
+
+Single amounts use equal bounds, including the approximate `Circa £55,000`
+quote. Here, `exact` describes the numeric amounts as written. Quotes without
+an explicit period are labelled `unknown`. The label `year` on the `pa` case
+records the meaning of the quotation even though the current parser does not
+support that abbreviation.
+
+The test-local evaluator records recognition when the parser returns bounds
+and numeric correctness when both bounds match the labels exactly. The Lesson
+39 baseline is **0/8 recognised and 0/8 numeric matches**. The observed-case
+test checks coverage without fixing the score at zero, so later parser
+improvements can change it. This deliberately selected set of previous
+misses cannot estimate accuracy across advertisements. The score also leaves
+period, precision, full evidence verification and annual analytics eligibility
+unmeasured. Production verification still requires agreement with the advert
+and the extracted bounds and period. Only verified annual GBP ranges qualify
+for salary analytics.
+
+Run the benchmark offline with:
+
+```sh
+python -m pytest -q tests/analytics/test_salary_evidence_fixture.py tests/analytics/test_salary_evidence_evaluation.py
+```
+
+With the original snapshot under `data/raw/`, the provenance test checks
+each quotation verbatim against the description for its advertisement ID.
+On a fresh checkout, only that test is skipped because the snapshot is
+excluded from Git. The test fixtures and evaluator require no live services.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or
@@ -1361,6 +1397,6 @@ from Git.
 
 ## Planned Development
 
-1. Build a manually labelled evidence set for offline evaluation. Start with explicit period forms such as `pa` and measure parser recognition and complete verification separately before extending the grammar.
+1. Use the labelled benchmark to assess explicit period forms such as `pa`. Measure parser recognition and complete verification separately before extending the grammar.
 2. Build operational monitoring and job-market dashboards.
 3. Investigate processing retries, persistence and concurrency where justified.
