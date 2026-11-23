@@ -1504,6 +1504,49 @@ from the abbreviation change.
 verifier. Reconcile changes in verification and annual eligibility against the
 report counts and denominators for the portfolio case study.
 
+### Lesson 41 — Offline Salary Verification Replay
+
+- Reviewed `tests/analytics/test_offline_salary_replay.py` against the evidence
+  parser, extraction/verification boundary, annual salary policy and labelled
+  fixture. No production parser or workflow changes were needed.
+- Checked all eight quotations against their advertisement IDs in the original
+  Lesson 36 snapshot. Added per-case bounds, period, precision, source-snapshot,
+  verification and eligibility assertions so aggregate totals cannot hide a
+  different case passing incorrectly.
+- Replaced the unknown-period early exit with a deliberately invented annual
+  candidate: all five such quotations must require review and remain ineligible.
+  Added an approximate annual synthetic control to isolate approximation from
+  unknown periods, plus a missing-snapshot skip regression.
+- Measured current legacy-helper recognition **1/8**, expanded recognition
+  **8/8**, verified quotations **3/8**, verified annual salaries **1/8**, and
+  unsupported/unknown periods **5/8**. Two verified quotations are daily;
+  `observed_17` is the sole annual case. These are constructed candidates, so
+  this does not independently measure LLM extraction accuracy.
+
+**Historical finding resolved.** Replaying the range-parser definitions from
+Lesson 39 commit `596b74c` and Lesson 40 commit `6134888` against the same fixture
+returned 0/8 and 1/8. The Lesson 40 diff adds `pa` to the legacy helper's
+`SALARY_RANGE_PATTERN`; `observed_17` (£76,000–£95,000 pa) becomes its only match.
+The supplied “historical recognition” label therefore refers to the current
+legacy helper, not the frozen Lesson 39 implementation. The earlier 0/8 baseline
+and the Lesson 40 expanded-recogniser comparison remain valid historical findings.
+
+**Validation (23 November 2026).** 72 focused tests passed in 0.31s. Full offline
+regression: **426 passed, 2 skipped, 1 known work-pattern XFAIL in 0.83s**, with
+429 collected and clean `git diff --check`. Original snapshot provenance ran.
+The supplied baseline was 426 passed, 1 XFAIL in 8.66s (427 collected); review
+adds two tests and disables credentials, causing the two live OpenAI integration
+tests to skip. No live API calls were made. The [README procedure](README.md#lesson-41--controlled-offline-salary-verification-replay)
+documents replay inputs, results and missing-snapshot behaviour.
+
+**Portfolio relationship.** This strengthens reproducibility and traceability of
+salary decisions for the **15 December 2026** release. The selected eight quotes
+cannot represent the wider UK labour market, and excerpt-based replay bypasses
+the production completeness gate for diagnostic purposes. A salary-policy pass
+is not an end-to-end report inclusion result. Reconcile these decisions with
+report counts/exclusions and complete publication under the unchanged Definition
+of Done below; broader parser work and Observatory features remain deferred.
+
 ## Definition of Done — First Portfolio Release
 
 **Target publication:** 15 December 2026

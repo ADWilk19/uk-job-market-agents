@@ -1401,6 +1401,74 @@ and precision labels, which were first scored in this lesson. The offline
 benchmark command above runs those assertions. These examples were selected
 from previous misses, so the scores describe this fixture only.
 
+## Lesson 41 — Controlled Offline Salary Verification Replay
+
+The regression in `tests/analytics/test_offline_salary_replay.py` joins the eight
+labelled quotations to advertisement IDs in the local
+`data/raw/adzuna_lesson36_20261116T092204Z.json` snapshot. It checks the fixture's
+snapshot name and verbatim evidence in each saved description, then checks parsed
+bounds, period and precision against the labels. Candidates are constructed from
+recognised quotations and passed directly to `assess_salary_extraction()` and
+`is_salary_eligible_for_analytics()`; no LLM extraction or live retrieval occurs.
+
+From the repository root, with dependencies installed in `.venv`, retain the
+original Lesson 36 snapshot at that path and run:
+
+```bash
+# Controlled replay and labelled evidence checks; no API credentials required.
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY .venv/bin/python -m pytest -q -rs tests/analytics/test_offline_salary_replay.py tests/analytics/test_salary_evidence_fixture.py tests/analytics/test_salary_evidence_evaluation.py
+# Full offline regression.
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY .venv/bin/python -m pytest -q -ra
+git diff --check
+```
+
+The snapshot is ignored by Git. Without it, the replay and the separate fixture
+provenance check skip rather than fetch replacement data; a skip does not reproduce
+the measured results. Label checks and synthetic verification controls still run.
+The replay's missing-snapshot behaviour has its own regression check.
+
+| Measurement on the eight selected quotations | Result |
+| --- | --- |
+| Legacy range helper recognition at Lesson 41 | 1/8 |
+| Expanded evidence recognition | 8/8 |
+| Verified quotations | 3/8 |
+| Verified annual salaries eligible under salary policy | 1/8 |
+| No supported period | 5/8 |
+
+`observed_00` and `observed_01` verify as daily pay and remain outside annual
+analytics. Only `observed_17` verifies as annual pay (£76,000–£95,000 pa).
+The other five require review even when a candidate incorrectly asserts an annual
+period. `observed_16` is also approximate. A separate synthetic control with
+`Circa £55,000 per year` isolates approximation and confirms that an explicit
+annual period does not make approximate evidence verifiable.
+
+**Historical baseline reconciliation.** Lesson 39's recorded **0/8** recognition
+and numeric matches remain correct for commit `596b74c`. Lesson 40 commit
+`6134888` added `pa` to `SALARY_RANGE_PATTERN`, which is also used by the retained
+`parse_salary_range()` helper. Replaying the parser definitions from both commits
+against the same fixture reproduced 0/8 and 1/8 respectively; the sole new match
+is `observed_17`, with correct bounds. Thus the supplied Lesson 41 “historical
+recognition” metric measures the current legacy helper, not a frozen Lesson 39
+parser. The historical Lesson 39/40 findings above are preserved.
+
+**Validation (23 November 2026).** Review passed 72 focused tests in 0.31s;
+the full offline suite returned **426 passed, 2 skipped, 1 known XFAIL** in 0.83s
+(429 collected). The two skips are live OpenAI integration tests with credentials
+unset; snapshot provenance ran. Compared with the supplied 426 passed / 1 XFAIL
+baseline (427 collected), review adds two safety tests and deliberately skips the
+two live integration tests. `git diff --check` was clean.
+
+**Limitations and release scope.** This tests deterministic verification of
+constructed candidates, not independent LLM extraction accuracy or the complete
+production workflow. Adzuna descriptions may be excerpts; production processing
+still gates salary extraction on complete descriptions. The one eligible quote
+is a salary-policy result, not proof that an excerpt would enter a production
+report. These eight deliberately selected observations are not representative of
+the UK job market. No parser functionality changes are included. This supplies
+salary-decision evidence for the **15 December 2026** portfolio release; complete
+offline report reconciliation and publication remain governed by the existing
+[Definition of Done](COURSE_PROGRESS.md#definition-of-done--first-portfolio-release).
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or
@@ -1420,6 +1488,6 @@ from previous misses, so the scores describe this fixture only.
 
 ## Planned Development
 
-1. Replay the saved Lesson 36 sample offline and reconcile verified salaries and annual eligibility with the report for the first portfolio release.
+1. Reconcile the Lesson 41 offline salary decisions with report counts and denominators, and complete the existing Definition of Done for the 15 December 2026 portfolio release.
 2. Build operational monitoring and job-market dashboards.
 3. Investigate processing retries, persistence and concurrency where justified.
