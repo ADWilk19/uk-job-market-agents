@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 12 November 2026
+**Last updated:** 24 November 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -1546,6 +1546,50 @@ the production completeness gate for diagnostic purposes. A salary-policy pass
 is not an end-to-end report inclusion result. Reconcile these decisions with
 report counts/exclusions and complete publication under the unchanged Definition
 of Done below; broader parser work and Observatory features remain deferred.
+
+### Lesson 42 — Portfolio analytical population and reproducibility
+
+**Outcome:** notebook reproducibility and the [working case-study manuscript](docs/portfolio_case_study.md)
+review are complete on `lesson/42-portfolio-analytical-population`. Changes remain
+uncommitted; this does not mark the first portfolio release as published.
+
+- Reconciled all manuscript counts: 60 advertisements / 60 IDs, 47 content
+  combinations, 18 records in five repeated-content groups, 42/60 predicted
+  salaries and 12/60 pound-bearing excerpts. The two selected provider maxima
+  exceed visible upper bounds by 13.1% and 25.7%; annual periods there are
+  context-inferred, not production verified.
+- Notebook 01 retains the exploratory analysis and computes current strict-range
+  results: 2/12 verified and one annual-policy pass. Historical Lesson 36 findings
+  remain explicitly labelled; all 60 records, including repeated content, remain
+  in the exploratory population.
+- Notebook 02 executes original parser definitions pinned to `f2f2f86` and
+  `5f37e1f`, confirming 0/8 versus 0/8. Separately checked Lesson 39 `596b74c`
+  and Lesson 40 `6134888` legacy-helper recognition at 0/8 and 1/8. Subsequent
+  expanded recognition is not substituted into the Lesson 37 comparison.
+- Reconciled the eight-quotation fixture and Lesson 41 replay: 8/8 recognised,
+  3/8 verified (two daily, one annual), 1/8 annual-policy eligible and 5/8 without
+  supported periods. These constructed candidates do not measure LLM extraction
+  accuracy or demonstrate production report inclusion through the completeness gate.
+- Clarified that results describe selected Adzuna observations, not wider UK
+  labour-market characteristics or unique vacancies. Added README links and
+  explanations of the notebooks' distinct purposes. No production functionality,
+  additional data collection or Observatory features were introduced.
+
+**Validation (24 November 2026):** both notebooks executed successfully from fresh
+kernels without API credentials during Lesson 42; saved outputs remain cleared.
+The final offline suite returned **426 passed, 2 credential-dependent skips,
+1 known work-pattern XFAIL** (429 collected). Original snapshot provenance and the
+labelled replay ran. `git diff --check` passed.
+
+**Remaining release requirements — target unchanged: 15 December 2026.**
+Confirm public data-redistribution compliance and attribution, and establish a
+compliant reader-access route for reproducibility: raw snapshots are excluded
+from Git and the public checkout alone is insufficient. Complete the documented
+offline classification-to-report workflow and reconcile report counts, exclusions,
+denominators and eligibility to input records. Finish public website publication,
+repository/case-study links and reader walkthrough under the Definition of Done
+below. Notebook and benchmark validation do not close these publication items;
+Observatory development remains deferred.
 
 ## Definition of Done — First Portfolio Release
 

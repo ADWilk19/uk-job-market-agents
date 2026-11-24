@@ -1469,6 +1469,45 @@ salary-decision evidence for the **15 December 2026** portfolio release; complet
 offline report reconciliation and publication remain governed by the existing
 [Definition of Done](COURSE_PROGRESS.md#definition-of-done--first-portfolio-release).
 
+## Lesson 42 — Portfolio manuscript and notebook reproducibility
+
+The [working portfolio case study](docs/portfolio_case_study.md) reconciles the
+Adzuna-sourced exploratory findings and controlled salary benchmark. It remains a
+working manuscript for the **15 December 2026** publication target.
+
+- [Notebook 01](notebooks/01_uk_job_market_exploration.ipynb) explores all 60
+  advertisements across three first-page search results. It retains repeated
+  content, provider salary provenance and manual comparisons. Its current-package
+  strict-range diagnostic computes two verified matches among 12 pound-bearing
+  excerpts, with one annual salary-policy pass; the original Lesson 36 one-daily,
+  zero-annual finding is labelled historical.
+- [Notebook 02](notebooks/02_salary_verification_replay.ipynb) compares the same
+  eight selected quotations using parser definitions pinned to `f2f2f86` and
+  `5f37e1f`. Both recognise 0/8; later production changes cannot alter this
+  comparison. Lesson 40's expansion is documented separately and linked to the
+  [Lesson 41 labelled replay](tests/analytics/test_offline_salary_replay.py):
+  8/8 recognised, 3/8 verified and 1/8 annual-policy eligible.
+
+The eight-quotation technical benchmark is a selected subset of the exploration,
+not a measure of UK-wide salary disclosure or LLM extraction accuracy. Neither
+unique Adzuna IDs nor repeated excerpts establish vacancy identity. A diagnostic
+salary-policy pass bypasses the production completeness gate and does not prove
+end-to-end report inclusion.
+
+Both notebooks execute locally from fresh kernels without API credentials when
+the original snapshots, dependencies and pinned Git history are available; outputs
+are cleared in the saved files. Raw snapshots are excluded from Git, so a public
+checkout alone cannot reproduce the measured results. Public data-redistribution
+compliance, a compliant reader-access/reproduction route, end-to-end report
+reconciliation and website publication remain outstanding under the
+[release Definition of Done](COURSE_PROGRESS.md#definition-of-done--first-portfolio-release).
+No additional collection or Observatory functionality is part of Lesson 42.
+
+**Validation (24 November 2026):** snapshot counts and the four historical parser
+checkpoints reconcile with the manuscript. Both notebooks passed fresh-kernel
+execution during Lesson 42. Final offline regression: **426 passed, 2
+credential-dependent skips, 1 known XFAIL**; `git diff --check` passed.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or
