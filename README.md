@@ -1508,6 +1508,66 @@ checkpoints reconcile with the manuscript. Both notebooks passed fresh-kernel
 execution during Lesson 42. Final offline regression: **426 passed, 2
 credential-dependent skips, 1 known XFAIL**; `git diff --check` passed.
 
+## Lesson 43 — Synthetic end-to-end analytical reconciliation
+
+[The integration test](tests/analytics/test_end_to_end_reconciliation.py) follows
+six synthetic `JobPosting` inputs through production rule classification,
+classification resolution, batch orchestration, salary verification, record-level
+row construction, analytical report composition and report CSV serialization.
+Only `workflow.classify_with_llm` and
+`salary_workflow.extract_salary_with_llm` are replaced with controlled responses.
+No live LLM accuracy is measured, and snapshot loading is not exercised.
+
+| Synthetic scenario | Processing outcome | Salary outcome | Role eligible | Annual salary eligible |
+| --- | --- | --- | --- | --- |
+| Explicit annual range | Processed | Verified annual | Yes | Yes |
+| Explicit daily range | Processed | Verified daily | Yes | No |
+| Period-free range with invented annual candidate | Processed | Salary review required | Yes | No |
+| Excerpt with explicit range and predicted provider salary | Processed | Extraction blocked by completeness gate | Yes | No |
+| Role-classification disagreement | Classification review required | Extraction not attempted | No | No |
+| Classification-agent failure | Failed | Extraction not attempted | No | No |
+
+All six source IDs remain represented in outcomes and export rows. Processing
+reconciles to four processed, one classification review and one failure. The
+classifier is called six times and salary extraction exactly three times; two
+salary assessments verify. Salary review does not imply classification review.
+The excerpt's provider bounds and prediction flag remain provenance fields while
+its analytical salary fields stay empty, despite explicit pay text.
+
+The report CSVs retain the complete six-row denominator: role eligibility is
+**4/6**, annual salary eligibility **1/6**. The sole data-engineering group's
+verified annual salary rate is **1/4**, using its four role-eligible rows. The
+assertions check eligible source identities as well as totals, source provenance,
+review reasons, exact salary candidates and CSV values.
+
+This complements the existing tests that start from prepared export rows and
+separate record-level CSV tests. **Record-level row construction is exercised;
+record-level CSV serialization is not part of this integration test.**
+
+Run from the repository root with dependencies installed:
+
+```bash
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra tests/analytics/test_end_to_end_reconciliation.py
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m pytest -q -ra
+git diff --check
+# Until the test is tracked, check it explicitly (no-index may return 1 for a new file).
+git diff --no-index --check /dev/null tests/analytics/test_end_to_end_reconciliation.py
+```
+
+**Validation (25 November 2026):** focused integration **1 passed**; full offline
+suite **427 passed, 2 credential-dependent skips, 1 known XFAIL** (430 collected).
+The temporary population-only test was consolidated into the integration test,
+so the supplied 428-pass baseline decreases by one without losing its assertions.
+Tracked and untracked whitespace checks are clean. No production change was needed.
+
+These six synthetic scenarios are separate from both the 60 Adzuna observations
+and eight selected quotations. They may be reused for the planned interactive
+advertisement walkthrough and optional technical deep dive; no website behaviour
+or runtime tracing is implemented here. Snapshot-backed empirical reconciliation,
+public data-redistribution compliance, reader reproducibility and publication
+remain outstanding for **15 December 2026** under the unchanged
+[Definition of Done](COURSE_PROGRESS.md#definition-of-done--first-portfolio-release).
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or

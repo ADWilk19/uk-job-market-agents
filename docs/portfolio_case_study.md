@@ -2,7 +2,7 @@
 
 *An agent-assisted data pipeline for evaluating UK job advertisements sourced from Adzuna.*
 
-**Status:** Working manuscript — Lesson 42 evidence review completed; publication requirements remain open
+**Status:** Working manuscript — Lesson 43 synthetic integration evidence reviewed; publication requirements remain open
 **Target publication:** 15 December 2026
 
 ## 1. Introduction
@@ -85,6 +85,40 @@ This benchmark evaluates deterministic recognition and verification using constr
 
 Notebook 01 asks a narrower diagnostic question across the three snapshots: using the current package, the first strict range match in each of 12 pound-bearing excerpts yields two verified quotations and one annual-policy pass. Its original Lesson 36 result was one verified daily range and zero annual-policy passes. Neither diagnostic measures automatic evidence extraction, and the 2/12 strict-match count must not be substituted for the expanded recogniser's 8/8 selected-quotation result.
 
+### Synthetic integration evidence — Lesson 43
+
+A separate [six-advertisement integration test](../tests/analytics/test_end_to_end_reconciliation.py)
+checks the production path from classification rules and resolution through
+orchestration, salary verification, record-level row construction and analytical
+report CSVs. Only the classifier and salary extractor's LLM-facing functions use
+controlled responses. This tests deterministic handling of those responses, not
+measured LLM accuracy or empirical market characteristics.
+
+| Synthetic scenario | Processing result | Salary result |
+| --- | --- | --- |
+| Explicit annual range | Processed | Verified and annual eligible |
+| Explicit daily range | Processed | Verified, excluded from annual analytics |
+| No stated period; candidate asserts annual | Processed | Salary review required; role retained |
+| Excerpt with pay text and predicted provider bounds | Processed | Extraction gated off; provider metadata retained separately |
+| Classification disagreement | Classification review required | No extraction or analytical role |
+| Classification-agent failure | Failed | No extraction or analytical role |
+
+All six advertisements remain in the source/export-row population: four process,
+one requires classification review and one fails. Salary extraction is attempted
+for three, and two assessments verify. Report CSVs reconcile role eligibility at
+**4/6** and annual salary eligibility at **1/6**. The within-role annual salary rate
+is **1/4**, using four eligible data-engineering records as its denominator.
+Classification review and salary review remain separate decisions.
+
+These six synthetic inputs are neither part of the 60-advertisement Adzuna sample
+nor the eight-quotation benchmark. The completeness gate is preserved rather
+than bypassed: an excerpt's explicit salary text and provider estimate do not
+populate verified analytical salary fields. Record-level row construction is
+exercised, but record-level CSV serialization is not part of this integration test.
+The synthetic test can run without private snapshots or API credentials once
+dependencies are installed; it does not complete the outstanding snapshot-backed
+empirical replay or public reproducibility of the Adzuna findings.
+
 ## 7. Reproducibility
 
 The project uses saved API responses, labelled evidence fixtures, version-controlled implementations and automated regression tests.
@@ -95,7 +129,7 @@ The exploratory notebooks and controlled salary replay can be executed without l
 
 Raw responses in `data/raw/` are excluded from Git. A public checkout alone cannot reproduce these snapshot-based results. Missing snapshots cause notebook loading to fail; snapshot-dependent tests skip rather than retrieve new data, and a skip is not a reproduced measurement. Dependencies and the required Git history must also be available. See the [notebook setup instructions](../README.md#reproduce-the-notebook-offline) and [Lesson 41 replay procedure](../README.md#lesson-41--controlled-offline-salary-verification-replay).
 
-**Outstanding publication considerations:** confirm applicable Adzuna data-redistribution permissions and attribution requirements before publishing source data or excerpts; establish and document a compliant way for readers to access the required evidence and reproduce the workflow. This review does not establish redistribution clearance or complete public reproducibility. End-to-end offline classification, report counts, exclusions and denominators still need reconciliation under the [release Definition of Done](../COURSE_PROGRESS.md#definition-of-done--first-portfolio-release).
+**Outstanding publication considerations:** confirm applicable Adzuna data-redistribution permissions and attribution requirements before publishing source data or excerpts; establish and document a compliant way for readers to access the required evidence and reproduce the workflow. This review does not establish redistribution clearance or complete public reproducibility. Snapshot-backed empirical classification, report counts, exclusions and denominators still need reconciliation under the [release Definition of Done](../COURSE_PROGRESS.md#definition-of-done--first-portfolio-release).
 
 ### Supporting evidence
 
@@ -130,3 +164,5 @@ The project demonstrates how LLM-assisted interpretation can be combined with co
 The longer-term UK Job Market Observatory will explore recurring data collection, additional data sources, longitudinal analysis and automated reporting.
 
 These capabilities are outside the scope of the first portfolio release.
+
+The Lesson 43 synthetic scenarios may also support the planned interactive advertisement walkthrough and an optional technical deep dive. This lesson implements neither website functionality nor runtime tracing; the publication target remains 15 December 2026.

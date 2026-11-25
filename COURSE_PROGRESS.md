@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 24 November 2026
+**Last updated:** 25 November 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -1590,6 +1590,52 @@ denominators and eligibility to input records. Finish public website publication
 repository/case-study links and reader walkthrough under the Definition of Done
 below. Notebook and benchmark validation do not close these publication items;
 Observatory development remains deferred.
+
+### Lesson 43 — End-to-End Analytical Reconciliation
+
+Reviewed [the synthetic integration test](tests/analytics/test_end_to_end_reconciliation.py)
+on `lesson/43-end-to-end-reconciliation`. It runs six synthetic advertisements
+through production classification rules and resolution, orchestration, salary
+verification, record-level row construction, report composition and report CSV
+serialization. Only the two LLM-facing interpretation functions are monkeypatched.
+No material production defect was found and no production behaviour changed.
+
+- Consolidated the temporary source-population test into the integration test,
+  retaining six unique synthetic IDs and the five-complete/one-excerpt checks.
+- Strengthened assertions for orchestration provenance (including source URLs),
+  provider metadata preservation, exact salary bounds/period/evidence,
+  classification-review reasons, eligible source identities and report denominators.
+- Reconciled six classification calls and three salary-extraction calls to four
+  processed records, one classification review and one failure. Two salary
+  assessments verify: annual and daily. The period-free quote's invented annual
+  candidate requires salary review while its classification remains approved.
+- Kept the completeness gate intact: explicit pay and predicted provider metadata
+  in the excerpt do not cause salary extraction or populate analytical salary
+  fields. The excerpt remains role eligible.
+- Confirmed role eligibility **4/6**, annual salary eligibility **1/6** and the
+  data-engineering group's annual salary rate **1/4**, including report CSV reads.
+  Review and failed records remain in the full six-record denominator.
+- Existing report tests start from prepared export rows; this test adds the
+  upstream production path. Record-level CSV serialization remains separately
+  tested and is not exercised by this new integration test.
+
+**Validation (25 November 2026):** focused test **1 passed in 0.28s**; full
+credential-free regression **427 passed, 2 skipped, 1 known work-pattern XFAIL in
+0.80s** (430 collected). The supplied baseline had 428 passes and two focused
+tests; consolidation removes one test count while retaining its population
+assertions. Both live OpenAI tests skipped with credentials unset. Tracked
+`git diff --check` and an explicit no-index whitespace check of the untracked
+test were clean. Changes are left uncommitted.
+
+**Publication relationship:** these are controlled synthetic integration results,
+not empirical Adzuna findings or measured LLM accuracy. They do not close the
+outstanding snapshot-backed classification-to-report reconciliation. The
+60-advertisement exploration and eight-quotation benchmark remain distinct.
+Potential reuse of these scenarios for the interactive advertisement walkthrough
+and optional technical deep dive is recorded; no website functionality or runtime
+tracing was implemented. Public redistribution compliance, a compliant reader
+reproduction route and website publication remain open. The **15 December 2026**
+target and Definition of Done below are unchanged.
 
 ## Definition of Done — First Portfolio Release
 
