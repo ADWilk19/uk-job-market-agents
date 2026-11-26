@@ -1,5 +1,9 @@
 from pydantic import AwareDatetime, BaseModel, HttpUrl
+from collections.abc import Callable
 
+from uk_job_market_agents.agents.classifier import (
+    ClassificationResult,
+)
 from uk_job_market_agents.agents.salary_review import SalaryAssessment
 from uk_job_market_agents.agents.salary_workflow import run_salary_workflow
 from uk_job_market_agents.agents.workflow import (
@@ -36,13 +40,26 @@ class OrchestrationResult(BaseModel):
     )
 
 
-def process_job(job: JobPosting) -> OrchestrationResult:
+def process_job(
+    job: JobPosting,
+    *,
+    classifier: Callable[
+        [JobPosting], ClassificationResult
+    ] | None = None,
+) -> OrchestrationResult:
     """Coordinate classification, salary verification and record construction."""
 
-    workflow = run_classification_workflow(
-        title=job.raw_title,
-        description=job.raw_description,
-    )
+    if classifier is None:
+        workflow = run_classification_workflow(
+            title=job.raw_title,
+            description=job.raw_description,
+        )
+    else:
+        workflow = run_classification_workflow(
+            title=job.raw_title,
+            description=job.raw_description,
+            classifier=lambda title, description: classifier(job),
+        )
 
     resolution = resolve_classification(workflow)
 

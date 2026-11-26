@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from enum import Enum
+from collections.abc import Callable
 
 from uk_job_market_agents.agents.adjudication import (
     RoleFamilyAdjudication,
@@ -78,17 +79,23 @@ class AdjudicatedWorkflowResult(BaseModel):
 def run_classification_workflow(
     title: str,
     description: str,
+    *,
+    classifier: Callable[
+        [str, str], ClassificationResult
+    ] | None = None,
 ) -> ClassificationWorkflowResult:
-    rules_role_family = classify_role_family(title, description)
+    rules_role_family = classify_role_family(
+        title, description
+    )
 
     rules_work_pattern = classify_work_pattern(
         f"{title} {description}"
     )
 
-    llm_result = classify_with_llm(
-        title,
-        description,
-    )
+    if classifier is None:
+        classifier = classify_with_llm
+
+    llm_result = classifier(title, description)
 
     return ClassificationWorkflowResult.from_results(
         rules_role_family=rules_role_family,

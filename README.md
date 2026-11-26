@@ -1568,6 +1568,124 @@ public data-redistribution compliance, reader reproducibility and publication
 remain outstanding for **15 December 2026** under the unchanged
 [Definition of Done](COURSE_PROGRESS.md#definition-of-done--first-portfolio-release).
 
+## Lesson 44 — Snapshot-backed empirical classification replay
+
+[Notebook 03](notebooks/03_empirical_classification_replay.ipynb) replays 60 saved
+LLM classifications against the three original 16 November Adzuna snapshots.
+Unlike Lesson 43's six synthetic scenarios, this is local empirical processing
+and publication through the existing classification, orchestration, completeness,
+export and report contracts. It does not measure independently labelled accuracy.
+
+### Capture and replay contract
+
+`ClassificationCapture` records source/source ID, SHA-256 fingerprints of exact
+input text and the rendered prompt, model identifier, timezone-aware capture time
+and a structured classification. JSONL loading validates records and rejects
+duplicate identities. Replay checks identity, input, prompt and model compatibility,
+then returns isolated copies. Mutating a caller's capture or returned result does
+not alter the replay index. Compatibility errors become failed batch outcomes;
+the notebook preflights all captures before processing.
+
+The original prompt and model identifier were extracted without changing the
+live call's semantics. Optional classifier injection through workflow,
+orchestration and batch processing preserves the default live path when omitted.
+The resumable capture runner validates every existing checkpoint before inference,
+skips compatible captured identities and flushes/fsyncs each successful append.
+A complete final record lacking its newline is safely separated on the next
+append. Malformed JSON, duplicate or foreign identities and incompatible captures
+stop the runner before further calls; malformed physical writes require intervention.
+
+### Observed results and denominators
+
+| Measurement | Result |
+| --- | --- |
+| Role-family agreement | 59/60 (98.33%) |
+| Work-pattern agreement | 51/60 (85.00%) |
+| Work-pattern agreement excluding mutual unknowns | 16/25 (64.00%) |
+| Processing | 50 processed, 10 review required, 0 failed / 60 |
+| Approved role coverage | 50/60 (83.33%) |
+| Approved known work-pattern coverage | 16/60 (26.67%) |
+| Verified annual salary coverage | 0/60 (0%) |
+
+Nine records require work-pattern review and one role-family review. The work-pattern
+matrix (rules as rows, captured LLM as columns) is:
+
+| Rules / LLM | Hybrid | Onsite | Remote | Unknown |
+| --- | ---: | ---: | ---: | ---: |
+| Hybrid | 16 | 0 | 0 | 0 |
+| Onsite | 3 | 0 | 0 | 0 |
+| Unknown | 2 | 2 | 2 | 35 |
+
+The 35 mutual unknowns explain the difference between 51/60 and 16/25 agreement.
+All three rules-based onsite labels disagree with captured hybrid labels; six
+rules-based unknowns receive specific LLM labels. Manual inspection found at
+least one hybrid interpretation relying on assumed office expectations absent
+from the excerpt. Neither side is ground truth; no rules were tuned to this sample.
+
+| Approved role | Hybrid | Unknown | Total |
+| --- | ---: | ---: | ---: |
+| Analytics engineering | 3 | 16 | 19 |
+| Data engineering | 4 | 10 | 14 |
+| Data science | 9 | 8 | 17 |
+| Total | 16 | 34 | 50 |
+
+All 60 descriptions are excerpts. Salary extraction remains gated off, provider
+salary metadata stays separate, and zero annual salaries means policy exclusion,
+not absence of salary disclosures. The eight-quotation Lesson 41 diagnostic
+bypasses this completeness gate and is a separate benchmark.
+
+### Reproduce locally without new API calls
+
+Use the installed project environment with pandas, Jupyter and ipykernel. Retain
+the three snapshots listed in the [Notebook 01 setup](#reproduce-the-notebook-offline),
+their matching `.metadata.json` sidecars, and
+`data/raw/classification_lesson44.jsonl`. Unlike Notebook 01, these sidecars are
+required: the runner uses their collection timestamps, source, snapshot name and
+requested result counts. From the repository root:
+
+```bash
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python scripts/capture_classifications.py --dry-run
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m jupyterlab
+# Open Notebook 03, select the project kernel, Restart Kernel and Run All Cells.
+# Clear outputs before saving to Git.
+```
+
+The dry run reports 60 compatible captures and zero outstanding classifications.
+`--limit N` and `--all` are explicit live-capture modes for pending records and may
+incur API charges; neither was used in this review. Replay needs no credentials
+and never falls back to live inference for missing captures.
+
+Notebook 03 writes `data/processed/lesson44/`: `jobs.csv` (7,931 bytes),
+`batch_summary.csv` (117), `analytical_samples.csv` (107) and
+`role_family_summary.csv` (145). Repeated publication produced byte-identical
+SHA-256 fingerprints for all four reports. Assertions reconcile source ordering,
+provider/analytical salary separation, processing totals, approved role matrices
+and report denominators using production components.
+
+**Validation (26 November 2026):** 37 focused capture/replay tests passed; full
+credential-free suite **464 passed, 2 credential-gated skips, 1 known XFAIL**
+(467 collected). Four review cases extend the supplied 460-pass baseline.
+Notebook 03 passed fresh-kernel execution with live-call guards and credentials
+unset; saved outputs are cleared. Tracked and untracked whitespace checks passed.
+
+### Limits and release milestone
+
+The sample is small and non-random; unique advertisement IDs do not establish
+unique vacancies. Agreement is not accuracy. Replay reproduces captured responses,
+not fresh inference; the model identifier need not be an immutable version.
+SHA-256 establishes compatibility, not authenticity. Persistence assumes one writer;
+interrupted physical writes may require manual checkpoint repair, and exactly-once
+API billing is not guaranteed. Publication of all four reports is not atomic.
+
+Raw snapshots, captures and generated reports remain Git-ignored and local.
+Redistribution rights are unresolved, so a fresh public checkout cannot reproduce
+these empirical results. The next milestone is a compliant public evidence and
+reader-reproduction package, followed by the portfolio walkthrough and publication
+checks for **15 December 2026**, under the unchanged
+[Definition of Done](COURSE_PROGRESS.md#definition-of-done--first-portfolio-release).
+Broader work-pattern extraction, including office-attendance frequency, remains
+on the Observatory backlog.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or
@@ -1587,6 +1705,6 @@ remain outstanding for **15 December 2026** under the unchanged
 
 ## Planned Development
 
-1. Reconcile the Lesson 41 offline salary decisions with report counts and denominators, and complete the existing Definition of Done for the 15 December 2026 portfolio release.
+1. Package the Lesson 44 empirical replay for compliant public evidence access and reader reproduction, then complete the existing Definition of Done for the 15 December 2026 portfolio release.
 2. Build operational monitoring and job-market dashboards.
 3. Investigate processing retries, persistence and concurrency where justified.

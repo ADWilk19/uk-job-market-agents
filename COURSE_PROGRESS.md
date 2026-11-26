@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 25 November 2026
+**Last updated:** 26 November 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -1636,6 +1636,59 @@ and optional technical deep dive is recorded; no website functionality or runtim
 tracing was implemented. Public redistribution compliance, a compliant reader
 reproduction route and website publication remain open. The **15 December 2026**
 target and Definition of Done below are unchanged.
+
+### Lesson 44 — Snapshot-backed Empirical Classification Replay
+
+Reviewed all four modified production modules and the five new files on
+`lesson/44-snapshot-backed-empirical-replay`. The existing classification prompt
+and model identifier retain their live semantics; optional classifier injection
+preserves the default path. Validated capture JSONL stores source identities,
+input/prompt fingerprints, model identifier, capture time and structured results.
+Replay checks compatibility and isolates caller mutations.
+
+- Reviewed checkpoint validation, exclusive initial file creation, append/fsync,
+  duplicate detection and interrupted-run recovery. Fixed the complete-record,
+  missing-final-newline append edge case. Added four tests for that recovery and
+  for malformed, duplicate and foreign checkpoints stopping before API calls or writes.
+- Corrected Notebook 03's work-pattern comparison to use title plus description,
+  matching production. Added linked Contents, local-input instructions, production
+  eligibility selectors/coverage, source/provenance checks and all-four-report
+  reconciliation. No classification rules were tuned.
+- Reproduced role agreement **59/60**, work-pattern agreement **51/60** and
+  agreement excluding 35 mutual unknowns **16/25**. Review reasons are nine
+  work-pattern disagreements and one role-family disagreement. Agreement is not
+  independently validated accuracy; at least one captured hybrid rationale assumes
+  office expectations unsupported by the excerpt.
+- Reconciled **50 processed / 10 review / 0 failed** to all 60 original records.
+  Approved role counts are analytics engineering 19 (3 hybrid, 16 unknown), data
+  engineering 14 (4 hybrid, 10 unknown), data science 17 (9 hybrid, 8 unknown).
+  Role coverage is **50/60**, approved known work-pattern coverage **16/60**, and
+  annual salary coverage **0/60**. All descriptions are excerpts, so the unchanged
+  completeness gate prevents salary extraction. Zero eligibility is not zero disclosure.
+- Published local jobs, batch summary, analytical samples and role summary CSVs,
+  respectively **7,931 / 117 / 107 / 145 bytes**. All four SHA-256 fingerprints match
+  across repeated execution. This completes the local snapshot-backed reconciliation
+  that Lesson 43's synthetic test could not establish; the eight-quotation salary
+  benchmark remains distinct and bypasses the completeness gate diagnostically.
+
+**Validation (26 November 2026):** **37 focused passed**; full credential-free
+suite **464 passed, 2 credential-gated skips, 1 known XFAIL in 0.83s** (467
+collected), four more passes than the supplied baseline. Fresh-kernel notebook
+execution passed with credentials unset and live model calls guarded against;
+outputs are cleared. Dry-run checkpoint validation found 60 compatible captures
+and zero pending. No paid calls occurred. Tracked/untracked whitespace checks passed.
+
+**Remaining publication work:** preserve the **15 December 2026** target and
+Definition of Done below. Establish redistribution clearance and a compliant public
+input/capture access route, document the reader walkthrough and validate publication.
+Inputs, captures and reports remain local and ignored; the public checkout alone
+is insufficient. Replay is captured-response reproduction, not fresh inference or
+measured accuracy. Model identifiers may be mutable; fingerprints prove compatibility,
+not authenticity. Single-writer persistence, malformed interrupted writes, possible
+repeat API billing and non-atomic four-report publication remain limitations.
+Work-pattern extraction/office-attendance frequency belongs to the Observatory;
+no website functionality or runtime tracing was added. See the
+[README reproduction procedure](README.md#lesson-44--snapshot-backed-empirical-classification-replay).
 
 ## Definition of Done — First Portfolio Release
 

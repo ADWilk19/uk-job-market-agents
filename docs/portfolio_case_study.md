@@ -2,7 +2,7 @@
 
 *An agent-assisted data pipeline for evaluating UK job advertisements sourced from Adzuna.*
 
-**Status:** Working manuscript — Lesson 43 synthetic integration evidence reviewed; publication requirements remain open
+**Status:** Working manuscript — Lesson 44 local empirical replay reviewed; publication requirements remain open
 **Target publication:** 15 December 2026
 
 ## 1. Introduction
@@ -116,8 +116,55 @@ than bypassed: an excerpt's explicit salary text and provider estimate do not
 populate verified analytical salary fields. Record-level row construction is
 exercised, but record-level CSV serialization is not part of this integration test.
 The synthetic test can run without private snapshots or API credentials once
-dependencies are installed; it does not complete the outstanding snapshot-backed
-empirical replay or public reproducibility of the Adzuna findings.
+dependencies are installed. It does not by itself establish the empirical replay
+reported below or public reproducibility of the Adzuna findings.
+
+### Snapshot-backed empirical classification replay — Lesson 44
+
+[Notebook 03](../notebooks/03_empirical_classification_replay.ipynb) now runs the
+original 60 observations through production classification reconciliation,
+orchestration, record-level export and analytical reporting using locally captured
+LLM responses. This extends the synthetic integration evidence above without
+reclassifying it as market data or treating the eight selected salary quotations
+as the full analytical population.
+
+| Measurement | Numerator / denominator | Rate |
+| --- | --- | --- |
+| Role-family agreement | 59/60 | 98.33% |
+| Work-pattern agreement | 51/60 | 85.00% |
+| Work-pattern agreement excluding mutual unknowns | 16/25 | 64.00% |
+| Approved role coverage | 50/60 | 83.33% |
+| Approved known work-pattern coverage | 16/60 | 26.67% |
+| Verified annual salary coverage | 0/60 | 0% |
+
+Rules and captured interpretations agree on 16 hybrid and 35 unknown work patterns.
+All three rules-based onsite classifications disagree with captured hybrid labels;
+six rules-based unknowns receive specific captured labels (two each hybrid, onsite
+and remote). At least one hybrid rationale assumes office expectations absent
+from the saved excerpt. These findings expose limitations in both approaches;
+agreement is not independently validated accuracy.
+
+Processing yields 50 approved, 10 requiring classification review (nine work-pattern,
+one role-family) and no failures. The approved population contains:
+
+| Role | Hybrid | Unknown | Total |
+| --- | ---: | ---: | ---: |
+| Analytics engineering | 3 | 16 | 19 |
+| Data engineering | 4 | 10 | 14 |
+| Data science | 9 | 8 | 17 |
+| Total | 16 | 34 | 50 |
+
+All denominators for overall coverage remain 60, including the ten review records.
+All descriptions are excerpts: production salary extraction is gated off, so no
+verified annual salary enters these reports. Provider estimates remain separate.
+This zero is a policy result, not a salary-disclosure estimate, and does not
+contradict Lesson 41's one annual-eligible quotation in a diagnostic bypass.
+
+Local publication covers record-level jobs, batch summary, analytical samples and
+role-family summary CSVs (7,931, 117, 107 and 145 bytes respectively). Repeated
+execution produces matching SHA-256 fingerprints for all four, with source IDs,
+status counts and analytical denominators reconciled. The new empirical path
+includes record-level CSV serialization, unlike the Lesson 43 test.
 
 ## 7. Reproducibility
 
@@ -129,7 +176,17 @@ The exploratory notebooks and controlled salary replay can be executed without l
 
 Raw responses in `data/raw/` are excluded from Git. A public checkout alone cannot reproduce these snapshot-based results. Missing snapshots cause notebook loading to fail; snapshot-dependent tests skip rather than retrieve new data, and a skip is not a reproduced measurement. Dependencies and the required Git history must also be available. See the [notebook setup instructions](../README.md#reproduce-the-notebook-offline) and [Lesson 41 replay procedure](../README.md#lesson-41--controlled-offline-salary-verification-replay).
 
-**Outstanding publication considerations:** confirm applicable Adzuna data-redistribution permissions and attribution requirements before publishing source data or excerpts; establish and document a compliant way for readers to access the required evidence and reproduce the workflow. This review does not establish redistribution clearance or complete public reproducibility. Snapshot-backed empirical classification, report counts, exclusions and denominators still need reconciliation under the [release Definition of Done](../COURSE_PROGRESS.md#definition-of-done--first-portfolio-release).
+**Outstanding publication considerations:** confirm applicable Adzuna data-redistribution permissions and attribution requirements before publishing source data or excerpts; establish and document a compliant way for readers to access the required evidence and reproduce the workflow. This review does not establish redistribution clearance or complete public reproducibility. Local snapshot-backed empirical classification, report counts, exclusions and denominators now reconcile in Lesson 44; compliant public access and reader reproduction remain outstanding under the [release Definition of Done](../COURSE_PROGRESS.md#definition-of-done--first-portfolio-release).
+
+Lesson 44 requires the three snapshots and their metadata sidecars plus the local
+`classification_lesson44.jsonl` capture file. Replay validates identities, exact
+input/prompt fingerprints and model identifiers and returns isolated result copies.
+It reproduces captured responses, not fresh inference. The model identifier is not
+necessarily an immutable model version, and SHA-256 establishes compatibility,
+not authenticity. Capture persistence assumes a single writer. Interrupted physical
+writes can require manual intervention; exactly-once API billing is not guaranteed.
+Publication of all four reports is not atomic. See the
+[local replay instructions](../README.md#lesson-44--snapshot-backed-empirical-classification-replay).
 
 ### Supporting evidence
 

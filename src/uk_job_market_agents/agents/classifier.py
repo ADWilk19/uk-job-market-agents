@@ -4,6 +4,31 @@ from pydantic import BaseModel
 from uk_job_market_agents.models.job_posting import RoleFamily, WorkPattern
 
 
+CLASSIFICATION_MODEL = "gpt-5.6-luna"
+
+
+def build_classification_prompt(
+    title: str,
+    description: str,
+) -> str:
+    return f"""
+Classify the following UK job advert.
+
+Use only the allowed enum values provided by the response schema.
+
+Role title:
+{title}
+
+Description:
+{description}
+
+Interpret the actual working arrangement, not just isolated keywords.
+For example, mandatory recurring office attendance should affect the
+work-pattern classification even if the advert describes itself as
+remote-first.
+"""
+
+
 class ClassificationResult(BaseModel):
     role_family: RoleFamily
     work_pattern: WorkPattern
@@ -44,35 +69,23 @@ def test_classify_with_llm_returns_structured_result(monkeypatch):
     assert result == expected
 
 
-def _call_model(title: str, description: str) -> ClassificationResult:
+def _call_model(
+    title: str,
+    description: str,
+) -> ClassificationResult:
     client = OpenAI()
 
-    prompt = f"""
-Classify the following UK job advert.
-
-Use only the allowed enum values provided by the response schema.
-
-Role title:
-{title}
-
-Description:
-{description}
-
-Interpret the actual working arrangement, not just isolated keywords.
-For example, mandatory recurring office attendance should affect the
-work-pattern classification even if the advert describes itself as
-remote-first.
-"""
-
     response = client.responses.parse(
-        model="gpt-5.6-luna",
-        input=prompt,
+        model=CLASSIFICATION_MODEL,
+        input=build_classification_prompt(title, description),
         text_format=ClassificationResult,
     )
 
     result = response.output_parsed
 
     if result is None:
-        raise RuntimeError("Model did not return a parsed classification")
+        raise RuntimeError(
+            "Model did not return a parsed classification"
+        )
 
     return result

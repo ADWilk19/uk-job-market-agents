@@ -3,12 +3,15 @@ from __future__ import annotations
 from enum import Enum
 
 from pydantic import BaseModel, model_validator
+from collections.abc import Callable
 
+from uk_job_market_agents.agents.classifier import (
+    ClassificationResult,
+)
 from uk_job_market_agents.agents.orchestration import (
     OrchestrationResult,
     process_job,
 )
-
 from uk_job_market_agents.models.job_posting import JobPosting
 
 
@@ -76,13 +79,25 @@ class BatchProcessingOutcome(BaseModel):
         return self
 
 
-def process_jobs(jobs: list[JobPosting]) -> list[BatchProcessingOutcome]:
+def process_jobs(
+    jobs: list[JobPosting],
+    *,
+    classifier: Callable[
+        [JobPosting], ClassificationResult
+    ] | None = None,
+) -> list[BatchProcessingOutcome]:
     """Process a batch of job advertisements."""
     outcomes: list[BatchProcessingOutcome] = []
 
     for job in jobs:
         try:
-            result = process_job(job)
+            if classifier is None:
+                result = process_job(job)
+            else:
+                result = process_job(
+                    job,
+                    classifier=classifier,
+                )
 
             processing_status = (
                 ProcessingStatus.REVIEW_REQUIRED
