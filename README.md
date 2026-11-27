@@ -1686,6 +1686,79 @@ checks for **15 December 2026**, under the unchanged
 Broader work-pattern extraction, including office-attendance frequency, remains
 on the Observatory backlog.
 
+## Lesson 45 — Public synthetic evidence and reproducibility
+
+The [standalone demo](examples/run_offline_demo.py) uses six original
+[synthetic scenarios](examples/synthetic_scenarios.py) shared with the Lesson 43
+integration test. Both interpretation functions return controlled responses via
+explicit dependency injection. Production rules, reconciliation, completeness
+gating, deterministic salary verification and analytical eligibility still run.
+Omitting either optional dependency preserves its existing live default.
+
+From a clean checkout, use Python 3.10+ and install the project dependencies:
+
+```bash
+python -m venv .venv
+.venv/bin/python -m pip install -e .
+# Run from the repository root; no credentials or private data are required.
+env -u OPENAI_API_KEY -u OPENAI_ADMIN_KEY -u ADZUNA_APP_ID -u ADZUNA_APP_KEY .venv/bin/python -m examples.run_offline_demo
+```
+
+Dependency installation can require network access; execution makes no API calls.
+The runner writes or replaces these four files under `data/processed/public_demo/`:
+
+| Report | Expected synthetic result |
+| --- | --- |
+| `jobs.csv` | Six source rows; only `annual` has verified analytical bounds (£60,000–£70,000) |
+| `batch_summary.csv` | 6 total: 4 processed, 1 classification review, 1 failed |
+| `analytical_samples.csv` | Role eligible 4/6; annual salary eligible 1/6 |
+| `role_family_summary.csv` | Data engineering: 4 roles, 1 annual salary, within-role rate 1/4 |
+
+A verified daily rate stays outside annual analytics. The ambiguous quote needs
+salary review without losing its approved role. The excerpt's predicted provider
+bounds remain separate; its explicit pay text does not bypass the completeness
+gate. The shared scenarios replace duplicated fixture setup; the original Lesson 43
+assertions remain intact. The demo additionally exercises record-level CSV
+serialization. Repeated executions produce identical bytes for all four files,
+including when reusing an output directory. Publication of all four is not atomic.
+
+This public demonstration establishes **synthetic** reproducibility, not the
+60-advertisement empirical findings or LLM accuracy. Lesson 44's local empirical
+replay still requires private snapshots, metadata and captured classifications.
+Neither demonstration establishes independently labelled classification accuracy.
+
+### Attribution and publication review
+
+The [Adzuna developer API terms](https://developer.adzuna.com/docs/terms_of_service)
+list personal and academic research as permitted uses, subject to their conditions.
+Research publications must identify [The Adzuna API](https://www.adzuna.co.uk/)
+as the source of salary and vacancy data wherever published. Listing displays and
+Jobsworth estimates have additional attribution requirements; check the relevant
+terms for the final presentation.
+
+As reported by the project owner on 27 November 2026, an email requesting
+clarification has been sent to Adzuna. Historical snapshot redistribution remains
+ambiguous and clearance has **not** been established. Raw snapshots, captures and
+generated empirical reports remain excluded from Git. The already-tracked
+[observed salary evidence fixture](tests/fixtures/salary_evidence/observed_salary_evidence.csv)
+and source-derived manuscript text, quotations and figures are explicitly pending
+publication review; being tracked does not establish redistribution permission.
+No empirical data is needed by the synthetic demo.
+
+**Validation (27 November 2026):** five focused tests passed. The full
+credential-free suite returned **465 passed, 2 skipped, 1 known XFAIL**. An isolated
+copy of public source files (including the proposed new files), with no private
+inputs or credentials, ran twice with network connections blocked and identical
+outputs. It used already-installed third-party dependencies rather than a fresh
+network install. Tracked and untracked whitespace checks passed.
+
+**Next milestone:** resolve Adzuna's clarification, review tracked source-derived
+material and attribution, then finalize the public reader walkthrough, repository
+links and publication checks for **15 December 2026**. The existing
+[Definition of Done](COURSE_PROGRESS.md#definition-of-done--first-portfolio-release)
+is unchanged; synthetic reproduction alone does not close the empirical access
+requirement. No website or Observatory implementation is included in this lesson.
+
 ## Current Limitations
 
 - Batch processing is sequential, without concurrency, application-level retries or

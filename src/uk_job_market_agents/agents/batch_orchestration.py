@@ -12,6 +12,9 @@ from uk_job_market_agents.agents.orchestration import (
     OrchestrationResult,
     process_job,
 )
+from uk_job_market_agents.agents.salary_extractor import (
+    SalaryExtractionResult,
+)
 from uk_job_market_agents.models.job_posting import JobPosting
 
 
@@ -85,19 +88,24 @@ def process_jobs(
     classifier: Callable[
         [JobPosting], ClassificationResult
     ] | None = None,
+    salary_extractor: Callable[
+        [str], SalaryExtractionResult
+    ] | None = None,
 ) -> list[BatchProcessingOutcome]:
     """Process a batch of job advertisements."""
     outcomes: list[BatchProcessingOutcome] = []
 
     for job in jobs:
         try:
-            if classifier is None:
-                result = process_job(job)
-            else:
-                result = process_job(
-                    job,
-                    classifier=classifier,
-                )
+            dependencies = {}
+
+            if classifier is not None:
+                dependencies["classifier"] = classifier
+
+            if salary_extractor is not None:
+                dependencies["salary_extractor"] = salary_extractor
+
+            result = process_job(job, **dependencies)
 
             processing_status = (
                 ProcessingStatus.REVIEW_REQUIRED

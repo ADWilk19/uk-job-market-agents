@@ -4,6 +4,9 @@ from collections.abc import Callable
 from uk_job_market_agents.agents.classifier import (
     ClassificationResult,
 )
+from uk_job_market_agents.agents.salary_extractor import (
+    SalaryExtractionResult,
+)
 from uk_job_market_agents.agents.salary_review import SalaryAssessment
 from uk_job_market_agents.agents.salary_workflow import run_salary_workflow
 from uk_job_market_agents.agents.workflow import (
@@ -45,6 +48,9 @@ def process_job(
     *,
     classifier: Callable[
         [JobPosting], ClassificationResult
+    ] | None = None,
+    salary_extractor: Callable[
+        [str], SalaryExtractionResult
     ] | None = None,
 ) -> OrchestrationResult:
     """Coordinate classification, salary verification and record construction."""
@@ -88,7 +94,13 @@ def process_job(
     assessment = None
 
     if should_attempt_salary_extraction(job.description_completeness):
-        assessment = run_salary_workflow(job.raw_description)
+        if salary_extractor is None:
+            assessment = run_salary_workflow(job.raw_description)
+        else:
+            assessment = run_salary_workflow(
+                job.raw_description,
+                extractor=salary_extractor,
+            )
 
         record = apply_salary_assessment(
             record=record,

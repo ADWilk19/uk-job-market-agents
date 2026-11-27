@@ -2,7 +2,7 @@
 
 *An agent-assisted data pipeline for evaluating UK job advertisements sourced from Adzuna.*
 
-**Status:** Working manuscript — Lesson 44 local empirical replay reviewed; publication requirements remain open
+**Status:** Working manuscript — Lesson 45 public synthetic demonstration reviewed; publication requirements remain open
 **Target publication:** 15 December 2026
 
 ## 1. Introduction
@@ -187,6 +187,51 @@ not authenticity. Capture persistence assumes a single writer. Interrupted physi
 writes can require manual intervention; exactly-once API billing is not guaranteed.
 Publication of all four reports is not atomic. See the
 [local replay instructions](../README.md#lesson-44--snapshot-backed-empirical-classification-replay).
+
+### Public synthetic demonstration — Lesson 45
+
+The six original Lesson 43 scenarios and controlled interpretation responses are
+now shared by the integration test and a standalone demo. From the repository root,
+after installing the project (`python -m pip install -e .` in the chosen environment),
+run `.venv/bin/python -m examples.run_offline_demo`. No private snapshots, captured
+classifications or API credentials are needed. Dependency installation may need
+network access; the demonstration itself makes no API calls.
+
+Under `data/processed/public_demo/`, `jobs.csv` contains all six synthetic records;
+`batch_summary.csv` reports four processed, one classification review and one
+failure; `analytical_samples.csv` reports role eligibility 4/6 and annual salary
+eligibility 1/6; `role_family_summary.csv` reports four data-engineering records,
+one annual salary and a within-role rate of 1/4. Repeated runs produce identical
+bytes across all four files, including record-level serialization. Existing files
+are replaced, but the four-file publication is not atomic.
+
+Controlled interpretation responses still pass through production reconciliation,
+verification and completeness policies. The daily salary is verified but not annual
+eligible; the ambiguous quote requires salary review; the excerpt's provider
+estimate remains separate from verified salary fields. This demonstrates synthetic
+reproducibility, not reproduction of the 60-advertisement empirical results or
+measurement of LLM accuracy. Local empirical replay still depends on its original
+snapshots, metadata and captures. See the [execution and validation instructions](../README.md#lesson-45--public-synthetic-evidence-and-reproducibility).
+
+### Attribution and outstanding redistribution review
+
+The [developer API terms](https://developer.adzuna.com/docs/terms_of_service) list
+personal and academic research as permitted uses subject to their conditions.
+Salary and vacancy data derived from Adzuna must be attributed wherever published
+to [The Adzuna API](https://www.adzuna.co.uk/). Additional attribution requirements
+apply when displaying listings or Jobsworth estimates.
+
+The project owner reports that a clarification email has been sent to Adzuna;
+historical snapshot redistribution remains ambiguous and clearance has not been
+established. Raw snapshots, captured classifications and generated empirical
+reports remain local and Git-ignored. The tracked observed salary evidence fixture
+and source-derived text, quotations and figures in this manuscript are flagged for
+publication review. Their presence in Git is not redistribution clearance.
+
+The remaining milestones are the clarification decision, review of source-derived
+material and attribution, a public reader walkthrough and final publication checks.
+The 15 December 2026 target and existing Definition of Done remain unchanged;
+the synthetic demonstration does not settle public access to empirical evidence.
 
 ### Supporting evidence
 

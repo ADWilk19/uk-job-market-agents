@@ -1,20 +1,19 @@
 """Reconcile source advertisements through production analytical reporting."""
 
 import csv
-from datetime import datetime, timezone
 
 import pytest
 
+from examples.synthetic_scenarios import (
+    build_synthetic_postings,
+    controlled_classification,
+    controlled_salary_extraction,
+)
 from uk_job_market_agents.agents.batch_orchestration import (
     ProcessingStatus,
     process_jobs,
 )
-from uk_job_market_agents.agents.classifier import (
-    ClassificationResult,
-)
-from uk_job_market_agents.agents.salary_extractor import (
-    SalaryExtractionResult,
-)
+
 from uk_job_market_agents.agents.salary_review import (
     SalaryReviewStatus,
 )
@@ -40,69 +39,16 @@ from uk_job_market_agents.models.job_posting import (
 )
 from uk_job_market_agents.models.salary import (
     SalaryPeriod,
-    SalaryQuote,
 )
 
 
 @pytest.fixture
 def postings() -> list[JobPosting]:
-    collected_at = datetime(
-        2026, 11, 16, 9, 0, tzinfo=timezone.utc
-    )
-
-    def make_posting(
-        source_id: str,
-        description: str,
-        completeness: DescriptionCompleteness = (
-            DescriptionCompleteness.COMPLETE
-        ),
-        **kwargs,
-    ) -> JobPosting:
-        return JobPosting(
-            source_id=source_id,
-            source="synthetic",
-            source_url=f"https://example.org/jobs/{source_id}",
-            collected_at=collected_at,
-            raw_title="Data Engineer",
-            raw_description=description,
-            description_completeness=completeness,
-            **kwargs,
-        )
-
-    return [
-        make_posting(
-            "annual",
-            "Fully remote role. Salary: £60,000 - £70,000 per year.",
-        ),
-        make_posting(
-            "daily",
-            "Fully remote role. Salary: £450 - £500 per day.",
-        ),
-        make_posting(
-            "ambiguous",
-            "Fully remote role. Salary: £55,000 - £65,000.",
-        ),
-        make_posting(
-            "excerpt",
-            "Fully remote role. Salary: £50,000 - £60,000 per year.",
-            completeness=DescriptionCompleteness.EXCERPT,
-            source_salary_min=50000,
-            source_salary_max=60000,
-            source_salary_predicted=True,
-        ),
-        make_posting(
-            "review",
-            "Fully remote role. Develop and maintain data pipelines.",
-        ),
-        make_posting(
-            "failed",
-            "Fully remote role. Maintain data infrastructure.",
-        ),
-    ]
+    return build_synthetic_postings()
 
 
 @pytest.fixture
-def controlled_agents(monkeypatch, postings):
+def controlled_agents(postings):
     classification_calls = []
     salary_calls = []
 
@@ -111,73 +57,25 @@ def controlled_agents(monkeypatch, postings):
         for posting in postings
     }
 
-    def fake_classify(title, description):
-        assert title == "Data Engineer"
-        source_id = source_ids[description]
-        classification_calls.append(source_id)
+    def fake_classify(job):
+        assert job.raw_title == "Data Engineer"
 
-        if source_id == "failed":
-            raise RuntimeError("Synthetic classification failure")
+        classification_calls.append(job.source_id)
 
-        return ClassificationResult(
-            role_family=(
-                RoleFamily.DATA_SCIENCE
-                if source_id == "review"
-                else RoleFamily.DATA_ENGINEERING
-            ),
-            work_pattern=WorkPattern.REMOTE,
-            reasoning="Controlled classification response.",
-        )
-
-    salary_candidates = {
-        "annual": (
-            60000,
-            70000,
-            SalaryPeriod.YEAR,
-            "£60,000 - £70,000 per year",
-        ),
-        "daily": (
-            450,
-            500,
-            SalaryPeriod.DAY,
-            "£450 - £500 per day",
-        ),
-        "ambiguous": (
-            55000,
-            65000,
-            SalaryPeriod.YEAR,
-            "£55,000 - £65,000",
-        ),
-    }
+        return controlled_classification(job.source_id)
 
     def fake_extract(description):
         source_id = source_ids[description]
         salary_calls.append(source_id)
 
-        minimum, maximum, period, evidence = (
-            salary_candidates[source_id]
-        )
+        return controlled_salary_extraction(source_id)
 
-        return SalaryExtractionResult(
-            salary=SalaryQuote(
-                salary_min=minimum,
-                salary_max=maximum,
-                period=period,
-            ),
-            evidence=evidence,
-        )
-
-    monkeypatch.setattr(
-        "uk_job_market_agents.agents.workflow.classify_with_llm",
+    return (
         fake_classify,
-    )
-
-    monkeypatch.setattr(
-        "uk_job_market_agents.agents.salary_workflow.extract_salary_with_llm",
         fake_extract,
+        classification_calls,
+        salary_calls,
     )
-
-    return classification_calls, salary_calls
 
 
 def test_processing_reconciliation(
@@ -199,9 +97,18 @@ def test_processing_reconciliation(
         for posting in postings
     ) == 5
 
-    classification_calls, salary_calls = controlled_agents
+    (
+        classifier,
+        salary_extractor,
+        classification_calls,
+        salary_calls,
+    ) = controlled_agents
 
-    outcomes = process_jobs(postings)
+    outcomes = process_jobs(
+        postings,
+        classifier=classifier,
+        salary_extractor=salary_extractor,
+    )
 
     assert len(outcomes) == len(postings)
 

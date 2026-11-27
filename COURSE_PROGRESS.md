@@ -1,7 +1,7 @@
 # UK Job Market Agents — Course Progress
 
 **Status:** Active
-**Last updated:** 26 November 2026
+**Last updated:** 27 November 2026
 **Repository:** `uk-job-market-agents`
 **Purpose:** A practical, test-driven Python course for building AI-assisted analysis of UK job advertisements, with a focus on data engineering, data science, data analytics and analytics engineering.
 
@@ -1689,6 +1689,48 @@ repeat API billing and non-atomic four-report publication remain limitations.
 Work-pattern extraction/office-attendance frequency belongs to the Observatory;
 no website functionality or runtime tracing was added. See the
 [README reproduction procedure](README.md#lesson-44--snapshot-backed-empirical-classification-replay).
+
+### Lesson 45 — Public Evidence and Reproducibility
+
+Reviewed shared original synthetic scenarios, optional salary-extractor injection,
+the refactored integration test and the standalone four-report demonstration.
+No production correctness defect was found: default live behaviour, deterministic
+verification and the description-completeness gate remain intact. The original
+Lesson 43 integration assertions are retained with explicit classifier/extractor
+injection. Shared fixtures remove duplicated scenario definitions.
+
+- The public command is `.venv/bin/python -m examples.run_offline_demo` from the
+  repository root after installing project dependencies. It requires no private
+  snapshots, captured responses or API credentials.
+- Four reports in `data/processed/public_demo/` reconcile 6 synthetic inputs to
+  4 processed, 1 classification review and 1 failure; role eligibility is 4/6,
+  annual salary eligibility 1/6 and the data-engineering group salary rate 1/4.
+- Strengthened the reproducibility regression to read the grouped CSV, reconcile
+  denominators and source identities, verify provider/analytical salary separation,
+  guard against live inference and check repeated writes to an existing directory.
+- Ran an isolated public-source copy, without private data or credentials, twice
+  with network connections blocked. All four files were byte-identical. Validation
+  reused installed third-party dependencies; it did not perform a new network install.
+
+**Validation (27 November 2026):** **5 focused passed**; full credential-free suite
+**465 passed, 2 credential-dependent skips, 1 known work-pattern XFAIL** (468
+collected). Tracked and all four untracked files passed whitespace checks.
+
+**Governance and remaining milestones:** the developer API terms permit personal
+research subject to their conditions, including attribution to The Adzuna API for
+published salary/vacancy data. The project owner reports that a clarification email
+has been sent; historical redistribution clearance remains unresolved. Keep raw
+snapshots, captured classifications and empirical reports Git-ignored. Explicitly
+review the tracked observed salary evidence fixture and all source-derived
+manuscript material before publication; tracking is not permission.
+
+Synthetic public reproducibility is distinct from Lesson 44's local empirical
+reproducibility and is not LLM accuracy evidence. Resolve redistribution and
+attribution, finalize the public reader walkthrough and repository/case-study
+links, and complete publication checks under the unchanged Definition of Done and
+**15 December 2026** target. Four-report publication is still non-atomic. No website
+or Observatory functionality was implemented. See the
+[README demo and governance instructions](README.md#lesson-45--public-synthetic-evidence-and-reproducibility).
 
 ## Definition of Done — First Portfolio Release
 
